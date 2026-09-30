@@ -42,13 +42,13 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
             Modul: <span className="font-semibold text-white">{moduleName}</span>
           </div>
           <div className="text-slate-400">
-            Kunci/ID: <span className="font-mono font-bold text-amber-400">{itemKey}</span>
+            Kunci/ID: <span className="font-mono font-bold text-emerald-400">{itemKey}</span>
           </div>
           <div className="text-slate-400">
             Nama/Deskripsi: <span className="font-semibold text-slate-200">{itemName}</span>
           </div>
           <div className="text-slate-400">
-            Jobsite: <span className="font-bold text-amber-300">{jobsite}</span>
+            Jobsite: <span className="font-bold text-emerald-300">{jobsite}</span>
           </div>
         </div>
 

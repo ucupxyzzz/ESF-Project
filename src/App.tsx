@@ -491,37 +491,66 @@ export default function App() {
     );
   };
 
-  // Handler Final Upload Dokumen BAST
-  const handleFinalUploadBast = async (file: File, base64: string) => {
-    const bastItem = dokumentasiModalState.bastItem;
-    if (!bastItem || !currentUser) return;
+  // Handler Final Upload Dokumen BAST & BA Kerusakan
+  const handleFinalUpload = async (file: File, base64: string) => {
+    const { bastItem, kerusakanItem } = dokumentasiModalState;
+    if (!currentUser) return;
 
-    const payloadWithFile = {
-      ...bastItem,
-      status: 'Terverifikasi HO',
-      dokumentasi: base64,
-      fileData: {
-        base64,
-        fileName: `${bastItem.noBast || 'BAST'}.pdf`,
-        mimeType: file.type || 'application/pdf'
-      }
-    };
+    if (bastItem) {
+      const payloadWithFile = {
+        ...bastItem,
+        status: 'Terverifikasi HO',
+        dokumentasi: base64,
+        fileData: {
+          base64,
+          fileName: `${bastItem.noBast || 'BAST'}.pdf`,
+          mimeType: file.type || 'application/pdf'
+        }
+      };
 
-    const currentBast = StorageService.getBast();
-    const updatedList = currentBast.map((b) =>
-      b.id === bastItem.id || b.noBast === bastItem.noBast ? payloadWithFile : b
-    );
-    StorageService.saveBast(updatedList);
-    setBast(updatedList);
+      const currentBast = StorageService.getBast();
+      const updatedList = currentBast.map((b) =>
+        b.id === bastItem.id || b.noBast === bastItem.noBast ? payloadWithFile : b
+      );
+      StorageService.saveBast(updatedList);
+      setBast(updatedList);
 
-    // Push update to Google Spreadsheet & GDrive
-    await AppsScriptSyncService.pushItemToSheet('ba-serah-terima', 'update', payloadWithFile, currentUser);
+      // Push update to Google Spreadsheet & GDrive
+      await AppsScriptSyncService.pushItemToSheet('ba-serah-terima', 'update', payloadWithFile, currentUser);
 
-    addToast(
-      'success',
-      'Final Upload Berhasil',
-      `Dokumen final untuk ${bastItem.noBast} berhasil diunggah ke Google Drive BAST dan disinkronkan ke Spreadsheet.`
-    );
+      addToast(
+        'success',
+        'Final Upload Berhasil',
+        `Dokumen final untuk ${bastItem.noBast} berhasil diunggah ke Google Drive BAST dan disinkronkan ke Spreadsheet.`
+      );
+    } else if (kerusakanItem) {
+      const payloadWithFile = {
+        ...kerusakanItem,
+        dokumentasi: base64,
+        fotoKerusakan: base64,
+        fileData: {
+          base64,
+          fileName: `${kerusakanItem.noBa || 'BA-KERUSAKAN'}.pdf`,
+          mimeType: file.type || 'application/pdf'
+        }
+      };
+
+      const currentKerusakan = StorageService.getKerusakan();
+      const updatedList = currentKerusakan.map((k) =>
+        k.id === kerusakanItem.id || k.noBa === kerusakanItem.noBa ? payloadWithFile : k
+      );
+      StorageService.saveKerusakan(updatedList);
+      setKerusakan(updatedList);
+
+      // Push update to Google Spreadsheet & GDrive
+      await AppsScriptSyncService.pushItemToSheet('ba-kerusakan', 'update', payloadWithFile, currentUser);
+
+      addToast(
+        'success',
+        'Final Upload Berhasil',
+        `Dokumen final BA Kerusakan ${kerusakanItem.noBa} berhasil diunggah ke Google Drive dan disinkronkan ke Spreadsheet.`
+      );
+    }
   };
 
   // Open Delete Confirmation (Strictly HO - Balikpapan)
@@ -624,14 +653,14 @@ export default function App() {
       header: 'Kondisi Awal (I)',
       render: (row: AssetItem) => {
         const k = row.kondisiAwal?.toLowerCase() || '';
-        let color = 'bg-slate-800 text-slate-300';
-        if (k.includes('baik')) color = 'bg-emerald-950/80 text-emerald-300 border border-emerald-800';
-        else if (k.includes('ringan')) color = 'bg-amber-950/80 text-amber-300 border border-amber-800';
-        else if (k.includes('berat')) color = 'bg-rose-950/80 text-rose-300 border border-rose-800';
+        let color = 'bg-slate-100 text-slate-700 border border-slate-200';
+        if (k.includes('baik')) color = 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold';
+        else if (k.includes('ringan')) color = 'bg-amber-50 text-amber-700 border border-amber-200 font-semibold';
+        else if (k.includes('berat')) color = 'bg-rose-50 text-rose-700 border border-rose-200 font-semibold';
         else if (k.includes('perbaiki') || k.includes('maint'))
-          color = 'bg-sky-950/80 text-sky-300 border border-sky-800';
+          color = 'bg-sky-50 text-sky-700 border border-sky-200 font-semibold';
         return (
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${color}`}>
+          <span className={`px-2.5 py-0.5 rounded-full text-[11px] ${color}`}>
             {row.kondisiAwal || '-'}
           </span>
         );
@@ -660,7 +689,7 @@ export default function App() {
       key: 'idPeminjaman',
       header: 'ID Peminjaman (A)',
       render: (row: PeminjamanItem) => (
-        <span className="font-mono text-amber-300 font-semibold">
+        <span className="font-mono text-emerald-800 font-bold">
           {row.idPeminjaman || row.noPeminjaman || '-'}
         </span>
       )
@@ -687,12 +716,12 @@ export default function App() {
       header: 'Status (K)',
       render: (row: PeminjamanItem) => (
         <span
-          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+          className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
             row.status === 'Kembali'
-              ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
               : row.status === 'Terlambat'
-              ? 'bg-rose-950 text-rose-300 border border-rose-800'
-              : 'bg-amber-950 text-amber-300 border border-amber-800'
+              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+              : 'bg-amber-50 text-amber-700 border border-amber-200'
           }`}
         >
           {row.status || 'Dipinjam'}
@@ -709,7 +738,7 @@ export default function App() {
       key: 'noPengadaan',
       header: 'No Pengadaan (A)',
       render: (row: PengadaanItem) => (
-        <span className="font-mono text-amber-300 font-semibold">
+        <span className="font-mono text-emerald-800 font-bold">
           {row.noPengadaan || row.noPoPr || '-'}
         </span>
       )
@@ -745,7 +774,7 @@ export default function App() {
       key: 'totalPrice',
       header: 'Total Price (Q)',
       render: (row: PengadaanItem) => (
-        <span className="font-mono font-semibold text-amber-300">
+        <span className="font-mono font-semibold text-slate-900">
           Rp {row.totalPrice || row.estimasiBiaya || '0'}
         </span>
       )
@@ -762,12 +791,12 @@ export default function App() {
       header: 'Status (U)',
       render: (row: PengadaanItem) => (
         <span
-          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+          className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
             row.status === 'Diterima di Site'
-              ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
               : row.status === 'Disetujui HO'
-              ? 'bg-blue-950 text-blue-300 border border-blue-800'
-              : 'bg-amber-950 text-amber-300 border border-amber-800'
+              ? 'bg-sky-50 text-sky-700 border border-sky-200'
+              : 'bg-amber-50 text-amber-700 border border-amber-200'
           }`}
         >
           {row.status || 'Draft'}
@@ -793,11 +822,11 @@ export default function App() {
           }}
           className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
             row.dokumentasi
-              ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40'
-              : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
           }`}
         >
-          <FileText className="w-3.5 h-3.5 text-amber-400" />
+          <FileText className="w-3.5 h-3.5 text-emerald-700" />
           <span>{row.dokumentasi ? 'Lihat Dokumen' : 'Folder GDrive'}</span>
         </button>
       )
@@ -817,7 +846,7 @@ export default function App() {
         <div className="flex items-center gap-1.5">
           <span>{row.namaAsset || row.namaAlat || '-'}</span>
           {(row.fotoKerusakan || row.dokumentasi) && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
               📷 Foto
             </span>
           )}
@@ -842,10 +871,10 @@ export default function App() {
       header: 'Status (L)',
       render: (row: BaKerusakanItem) => (
         <span
-          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+          className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
             row.status === 'Selesai'
-              ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-              : 'bg-rose-950 text-rose-300 border border-rose-800'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-rose-50 text-rose-700 border border-rose-200'
           }`}
         >
           {row.status || 'Investigasi'}
@@ -856,28 +885,40 @@ export default function App() {
       key: 'dokumentasi',
       header: 'Dokumentasi (M)',
       render: (row: BaKerusakanItem) => (
-        <button
-          type="button"
-          onClick={() => {
-            setDokumentasiModalState({
-              isOpen: true,
-              title: `Foto Kerusakan ${row.noBa || ''} - ${row.namaAsset || ''}`,
-              url: row.fotoKerusakan || row.dokumentasi || '',
-              isImage: true,
-              folderUrl: GDRIVE_CONFIG.KERUSAKAN_FOLDER_URL,
-              folderName: 'BA Kerusakan Alat',
-              bastItem: null
-            });
-          }}
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-            row.fotoKerusakan || row.dokumentasi
-              ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40'
-              : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-          }`}
-        >
-          <Camera className="w-3.5 h-3.5 text-amber-400" />
-          <span>{row.fotoKerusakan || row.dokumentasi ? 'Lihat Foto' : 'Folder GDrive'}</span>
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              setDokumentasiModalState({
+                isOpen: true,
+                title: `BA Kerusakan ${row.noBa || ''} - ${row.namaAsset || ''}`,
+                url: row.fotoKerusakan || row.dokumentasi || '',
+                isImage: true,
+                folderUrl: GDRIVE_CONFIG.KERUSAKAN_FOLDER_URL,
+                folderName: 'BA Kerusakan Alat',
+                bastItem: null,
+                kerusakanItem: row
+              });
+            }}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+              row.fotoKerusakan || row.dokumentasi
+                ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
+            }`}
+            title="Lihat Foto & Opsi Upload Final"
+          >
+            <Camera className="w-3.5 h-3.5 text-emerald-700" />
+            <span>{row.fotoKerusakan || row.dokumentasi ? 'Lihat Foto' : 'Dokumentasi'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => PdfService.downloadBaKerusakanPdf(row)}
+            className="p-1.5 rounded-lg text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition cursor-pointer"
+            title="Download PDF BA Kerusakan Resmi (4 Approval)"
+          >
+            <Download className="w-3.5 h-3.5" />
+          </button>
+        </div>
       )
     }
   ];
@@ -908,7 +949,7 @@ export default function App() {
       key: 'amount',
       header: 'Amount (J)',
       render: (row: OsrItem) => (
-        <span className="font-mono text-amber-300">Rp {row.amount || row.biayaPerbaikan || '0'}</span>
+        <span className="font-mono font-semibold text-slate-900">Rp {row.amount || row.biayaPerbaikan || '0'}</span>
       )
     },
     { key: 'condition', header: 'Condition (K)' },
@@ -923,14 +964,43 @@ export default function App() {
       header: 'Status (N)',
       render: (row: OsrItem) => (
         <span
-          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+          className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
             row.status === 'Selesai Diterima'
-              ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-              : 'bg-orange-950 text-orange-300 border border-orange-800'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-amber-50 text-amber-700 border border-amber-200'
           }`}
         >
           {row.status || 'Sedang Dikerjakan'}
         </span>
+      )
+    },
+    {
+      key: 'dokumentasi',
+      header: 'Dokumentasi (O)',
+      render: (row: OsrItem) => (
+        <button
+          type="button"
+          onClick={() => {
+            setDokumentasiModalState({
+              isOpen: true,
+              title: `Dokumentasi OSR ${row.noOsr || ''} - ${row.namaAsset || ''}`,
+              url: row.dokumentasi || row.fotoKerusakan || '',
+              isImage: true,
+              folderUrl: GDRIVE_CONFIG.OSR_FOLDER_URL,
+              folderName: 'OSR Tools & Facility',
+              bastItem: null,
+              kerusakanItem: null
+            });
+          }}
+          className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+            row.dokumentasi || row.fotoKerusakan
+              ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
+          }`}
+        >
+          <Camera className="w-3.5 h-3.5 text-emerald-700" />
+          <span>{row.dokumentasi || row.fotoKerusakan ? 'Lihat Foto' : 'Folder GDrive'}</span>
+        </button>
       )
     }
   ];
@@ -961,10 +1031,10 @@ export default function App() {
       header: 'Status (I)',
       render: (row: BaSerahTerimaItem) => (
         <span
-          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+          className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
             row.status === 'Terverifikasi HO'
-              ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-              : 'bg-blue-950 text-blue-300 border border-blue-800'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-sky-50 text-sky-700 border border-sky-200'
           }`}
         >
           {row.status || 'Draft'}
@@ -992,10 +1062,10 @@ export default function App() {
                   bastItem: row
                 });
               }}
-              className="px-2 py-1 rounded-lg text-xs font-semibold bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 flex items-center gap-1 transition"
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 flex items-center gap-1 transition"
               title="Lihat Dokumen & Opsi Upload Final"
             >
-              <FileText className="w-3 h-3" />
+              <FileText className="w-3 h-3 text-emerald-700" />
               <span>Dokumen</span>
             </button>
 
@@ -1008,7 +1078,7 @@ export default function App() {
                     bastItem: row
                   });
                 }}
-                className="px-2 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 flex items-center gap-1 transition shadow-md shadow-amber-500/20"
+                className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1 transition shadow-sm"
                 title="Berikan Tanda Tangan Digital HO"
               >
                 <ShieldCheck className="w-3 h-3" />
@@ -1029,8 +1099,8 @@ export default function App() {
               }}
               className={`p-1.5 rounded-lg text-xs transition ${
                 isApproved
-                  ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40'
-                  : 'bg-slate-800 text-slate-500 hover:text-slate-400'
+                  ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 cursor-pointer'
+                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
               }`}
               title={isApproved ? 'Download PDF BAST Resmi' : 'Menunggu Approval HO Balikpapan'}
             >
@@ -1043,7 +1113,7 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#F4F7F5] text-slate-800 flex flex-col font-sans">
       {/* Top Navbar */}
       <Navbar
         currentUser={currentUser}
@@ -1250,7 +1320,8 @@ export default function App() {
         folderUrl={dokumentasiModalState.folderUrl}
         folderName={dokumentasiModalState.folderName}
         bastItem={dokumentasiModalState.bastItem}
-        onFinalUpload={handleFinalUploadBast}
+        kerusakanItem={dokumentasiModalState.kerusakanItem}
+        onFinalUpload={handleFinalUpload}
         onOpenHoSign={() => {
           if (dokumentasiModalState.bastItem) {
             setHoSignatureModalState({

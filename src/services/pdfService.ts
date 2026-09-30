@@ -20,10 +20,10 @@ export class PdfService {
     const contentWidth = pageWidth - margin * 2;
 
     // Header Kop Dokumen
-    doc.setFillColor(15, 23, 42); // slate-900
+    doc.setFillColor(6, 61, 46); // Forest Green #063D2E
     doc.rect(margin, 15, contentWidth, 24, 'F');
 
-    doc.setTextColor(245, 158, 11); // amber-500
+    doc.setTextColor(52, 211, 153); // Emerald-400
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.text('PT. KARUNIA GROUP', margin + 6, 23);
@@ -34,11 +34,11 @@ export class PdfService {
     doc.text('EQUIPMENT SUPPORT FACILITY (ESF) - MANAGEMENT SYSTEM', margin + 6, 29);
 
     doc.setFontSize(8);
-    doc.setTextColor(203, 213, 225); // slate-300
+    doc.setTextColor(209, 250, 229); // emerald-100
     doc.text('Workshop & Facility Tool Control | Balikpapan Head Office', margin + 6, 34);
 
     // Garis Pemisah
-    doc.setDrawColor(245, 158, 11);
+    doc.setDrawColor(16, 185, 129); // Emerald-500
     doc.setLineWidth(1);
     doc.line(margin, 42, pageWidth - margin, 42);
 
@@ -255,10 +255,10 @@ export class PdfService {
     const contentWidth = pageWidth - margin * 2;
 
     // Header Kop Dokumen
-    doc.setFillColor(15, 23, 42); // slate-900
+    doc.setFillColor(6, 61, 46); // Forest Green #063D2E
     doc.rect(margin, 12, contentWidth, 24, 'F');
 
-    doc.setTextColor(245, 158, 11); // amber-500
+    doc.setTextColor(52, 211, 153); // Emerald-400
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.text('PT. KARUNIA GROUP', margin + 6, 20);
@@ -269,11 +269,11 @@ export class PdfService {
     doc.text('EQUIPMENT SUPPORT FACILITY (ESF) - MANAGEMENT SYSTEM', margin + 6, 26);
 
     doc.setFontSize(8);
-    doc.setTextColor(203, 213, 225); // slate-300
+    doc.setTextColor(209, 250, 229); // emerald-100
     doc.text('Plant Maintenance & Tools Control Division | Incident Report', margin + 6, 31);
 
     // Garis Pemisah
-    doc.setDrawColor(245, 158, 11);
+    doc.setDrawColor(16, 185, 129); // Emerald-500
     doc.setLineWidth(1);
     doc.line(margin, 39, pageWidth - margin, 39);
 

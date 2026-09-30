@@ -116,19 +116,19 @@ export const DeveloperPanel: React.FC<DeveloperPanelProps> = ({ onNotify }) => {
   return (
     <div className="space-y-6">
       {/* Developer Banner */}
-      <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border border-blue-800/60 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-[#063D2E] border border-[#0B4D3B] rounded-2xl p-6 shadow-md relative overflow-hidden text-white">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
                 DEVELOPER ACCOUNT PRIVILEGE
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-              <Users className="w-6 h-6 text-blue-400" />
+              <Users className="w-6 h-6 text-emerald-300" />
               Manajemen Pengguna & Password
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-emerald-100/80 mt-1 max-w-2xl leading-relaxed">
               Sesuai otorisasi sistem, akun Developer berfungsi khusus untuk menambah username, mengganti password akun jobsite, dan menghapus akun.
             </p>
           </div>
@@ -137,15 +137,15 @@ export const DeveloperPanel: React.FC<DeveloperPanelProps> = ({ onNotify }) => {
             <button
               type="button"
               onClick={handleResetDefaults}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-[#0E5642] hover:bg-[#126850] border border-emerald-400/30 text-xs font-semibold text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
             >
-              <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+              <RotateCcw className="w-3.5 h-3.5 text-emerald-300" />
               <span>Reset Default</span>
             </button>
             <button
               type="button"
               onClick={() => setIsAddUserOpen(true)}
-              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-blue-600/30 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[#063D2E] text-xs font-black flex items-center gap-1.5 transition-all shadow-md shadow-emerald-950/40 cursor-pointer"
             >
               <UserPlus className="w-4 h-4" />
               <span>Tambah User Baru</span>
@@ -155,17 +155,17 @@ export const DeveloperPanel: React.FC<DeveloperPanelProps> = ({ onNotify }) => {
       </div>
 
       {/* Users Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-          <span className="text-xs font-bold text-white uppercase tracking-wider">
+      <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
             Daftar Akun Terdaftar ({users.length} Akun)
           </span>
-          <span className="text-xs text-slate-400">12 Jobsite + HO + Developer</span>
+          <span className="text-xs text-slate-500">12 Jobsite + HO + Developer</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="bg-slate-950 text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-800">
+            <thead className="bg-[#063D2E] text-white font-semibold uppercase tracking-wider">
               <tr>
                 <th className="py-3 px-4">No</th>
                 <th className="py-3 px-4">Username / ID</th>
@@ -175,27 +175,27 @@ export const DeveloperPanel: React.FC<DeveloperPanelProps> = ({ onNotify }) => {
                 <th className="py-3 px-4 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/70 font-mono">
+            <tbody className="divide-y divide-slate-100 font-mono">
               {users.map((u, idx) => {
                 const isProtected = u.username === 'Developer' || u.username === 'HO - Balikpapan';
                 const isShowing = showPasswords[u.username];
 
                 return (
-                  <tr key={u.username} className="hover:bg-slate-800/40 transition-colors">
+                  <tr key={u.username} className="hover:bg-emerald-50/40 transition-colors">
                     <td className="py-3 px-4 text-slate-400">{idx + 1}</td>
-                    <td className="py-3 px-4 font-sans font-bold text-white">
+                    <td className="py-3 px-4 font-sans font-bold text-slate-900">
                       {u.username}
-                      {u.name && <div className="text-[10px] text-slate-400 font-normal font-sans">{u.name}</div>}
+                      {u.name && <div className="text-[10px] text-slate-500 font-normal font-sans">{u.name}</div>}
                     </td>
-                    <td className="py-3 px-4 font-sans text-amber-300 font-medium">{u.jobsite}</td>
+                    <td className="py-3 px-4 font-sans text-emerald-800 font-bold">{u.jobsite}</td>
                     <td className="py-3 px-4 font-sans">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
                           u.role === 'ho'
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
                             : u.role === 'developer'
-                            ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                            : 'bg-slate-800 text-slate-300 border border-slate-700'
+                            ? 'bg-sky-50 text-sky-700 border border-sky-200'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         }`}
                       >
                         {u.role === 'ho' ? 'HO Super Admin' : u.role === 'developer' ? 'Developer' : 'Jobsite User'}
@@ -203,15 +203,15 @@ export const DeveloperPanel: React.FC<DeveloperPanelProps> = ({ onNotify }) => {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-200">
+                        <span className="font-bold text-slate-700">
                           {isShowing ? u.password : '••••••••'}
                         </span>
                         <button
                           type="button"
                           onClick={() => toggleShowPassword(u.username)}
-                          className="text-slate-400 hover:text-slate-200 p-1 cursor-pointer"
+                          className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
                         >
-                          {isShowing ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          {isShowing ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
                         </button>
                       </div>
                     </td>
@@ -220,10 +220,10 @@ export const DeveloperPanel: React.FC<DeveloperPanelProps> = ({ onNotify }) => {
                         <button
                           type="button"
                           onClick={() => handleOpenPasswordModal(u)}
-                          className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300 font-medium text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-semibold text-xs flex items-center gap-1 transition-colors cursor-pointer"
                           title="Ganti Password"
                         >
-                          <KeyRound className="w-3.5 h-3.5" />
+                          <KeyRound className="w-3.5 h-3.5 text-emerald-600" />
                           <span>Ganti Password</span>
                         </button>
 
@@ -231,7 +231,7 @@ export const DeveloperPanel: React.FC<DeveloperPanelProps> = ({ onNotify }) => {
                           <button
                             type="button"
                             onClick={() => handleDeleteUser(u)}
-                            className="p-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900 border border-rose-800/60 text-rose-300 hover:text-white transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 transition-colors cursor-pointer"
                             title="Hapus Akun User"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -250,10 +250,10 @@ export const DeveloperPanel: React.FC<DeveloperPanelProps> = ({ onNotify }) => {
       {/* Modal Change Password */}
       {selectedUserForPassword && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-slate-900 border border-[#0B4D3B] rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2">
-                <KeyRound className="w-5 h-5 text-amber-400" />
+                <KeyRound className="w-5 h-5 text-emerald-400" />
                 <h3 className="text-base font-bold text-white">Ganti Password Akun</h3>
               </div>
               <button
@@ -265,7 +265,7 @@ export const DeveloperPanel: React.FC<DeveloperPanelProps> = ({ onNotify }) => {
             </div>
 
             <p className="text-xs text-slate-300">
-              Ubah password login untuk akun <b className="text-amber-300">{selectedUserForPassword.username}</b> ({selectedUserForPassword.jobsite}).
+              Ubah password login untuk akun <b className="text-emerald-400">{selectedUserForPassword.username}</b> ({selectedUserForPassword.jobsite}).
             </p>
 
             <form onSubmit={handleSavePassword} className="space-y-4">
@@ -278,7 +278,7 @@ export const DeveloperPanel: React.FC<DeveloperPanelProps> = ({ onNotify }) => {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Masukkan password baru"
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   required
                 />
               </div>
@@ -293,7 +293,7 @@ export const DeveloperPanel: React.FC<DeveloperPanelProps> = ({ onNotify }) => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/20"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
                 >
                   <Check className="w-4 h-4" />
                   Simpan Password
@@ -307,10 +307,10 @@ export const DeveloperPanel: React.FC<DeveloperPanelProps> = ({ onNotify }) => {
       {/* Modal Add User */}
       {isAddUserOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-lg bg-slate-900 border border-[#0B4D3B] rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-blue-400" />
+                <UserPlus className="w-5 h-5 text-emerald-400" />
                 <h3 className="text-base font-bold text-white">Tambah Username / Akun Baru</h3>
               </div>
               <button
@@ -331,7 +331,7 @@ export const DeveloperPanel: React.FC<DeveloperPanelProps> = ({ onNotify }) => {
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
                   placeholder="Masukkan username unik"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:ring-2 focus:ring-emerald-500"
                   required
                 />
               </div>
@@ -345,7 +345,7 @@ export const DeveloperPanel: React.FC<DeveloperPanelProps> = ({ onNotify }) => {
                   value={newUserPassword}
                   onChange={(e) => setNewUserPassword(e.target.value)}
                   placeholder="Masukkan password akun"
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs font-mono text-white"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs font-mono text-white focus:ring-2 focus:ring-emerald-500"
                   required
                 />
               </div>
@@ -402,7 +402,7 @@ export const DeveloperPanel: React.FC<DeveloperPanelProps> = ({ onNotify }) => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-600/30"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
                 >
                   <Check className="w-4 h-4" />
                   Daftarkan Akun

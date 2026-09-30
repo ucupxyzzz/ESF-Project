@@ -140,15 +140,15 @@ export const DataTable: React.FC<DataTableProps> = ({
   return (
     <div className="space-y-4">
       {/* Top Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl shadow-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200/80 p-4 sm:p-5 rounded-2xl shadow-sm">
         <div>
-          <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+          <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
             {title}
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
               {filteredData.length} Baris Data
             </span>
           </h2>
-          <p className="text-xs text-slate-400 mt-1">{description}</p>
+          <p className="text-xs text-slate-500 mt-1">{description}</p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -157,10 +157,10 @@ export const DataTable: React.FC<DataTableProps> = ({
               type="button"
               onClick={onManualSync}
               disabled={isSyncing}
-              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm disabled:opacity-50"
               title="Sinkronkan dengan Google Sheets"
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-amber-400 ${isSyncing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-700 ${isSyncing ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Sync Sheets</span>
             </button>
           )}
@@ -168,17 +168,17 @@ export const DataTable: React.FC<DataTableProps> = ({
           <button
             type="button"
             onClick={handleExportCsv}
-            className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
             title="Download CSV Sesuai Format Spreadsheet"
           >
-            <Download className="w-3.5 h-3.5 text-blue-400" />
+            <Download className="w-3.5 h-3.5 text-slate-600" />
             <span>Ekspor CSV</span>
           </button>
 
           <button
             type="button"
             onClick={onAdd}
-            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-amber-500/20 cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Tambah Data Manual</span>
@@ -187,7 +187,7 @@ export const DataTable: React.FC<DataTableProps> = ({
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-slate-900/80 border border-slate-800 p-3 sm:p-4 rounded-xl flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+      <div className="bg-white border border-slate-200/80 p-3 sm:p-4 rounded-xl flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between shadow-sm">
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -198,13 +198,13 @@ export const DataTable: React.FC<DataTableProps> = ({
               setCurrentPage(1);
             }}
             placeholder="Cari no reg, nama alat, brand, serial, PIC..."
-            className="w-full pl-9 pr-3 py-2 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-600 transition"
           />
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           {categories.length > 0 && (
-            <div className="flex items-center gap-1 bg-slate-950/60 border border-slate-700/80 rounded-xl px-2.5 py-1.5">
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
               <Filter className="w-3 h-3 text-slate-400" />
               <select
                 value={selectedCategory}
@@ -212,29 +212,29 @@ export const DataTable: React.FC<DataTableProps> = ({
                   setSelectedCategory(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-transparent text-xs text-slate-300 focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs text-slate-700 focus:outline-none cursor-pointer"
               >
-                <option value="ALL" className="bg-slate-900">Semua Kategori</option>
+                <option value="ALL">Semua Kategori</option>
                 {categories.map((c) => (
-                  <option key={c} value={c} className="bg-slate-900">{c}</option>
+                  <option key={c} value={c}>{c}</option>
                 ))}
               </select>
             </div>
           )}
 
           {statuses.length > 0 && (
-            <div className="flex items-center gap-1 bg-slate-950/60 border border-slate-700/80 rounded-xl px-2.5 py-1.5">
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
               <select
                 value={selectedStatus}
                 onChange={(e) => {
                   setSelectedStatus(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-transparent text-xs text-slate-300 focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs text-slate-700 focus:outline-none cursor-pointer"
               >
-                <option value="ALL" className="bg-slate-900">Semua Status/Kondisi</option>
+                <option value="ALL">Semua Status/Kondisi</option>
                 {statuses.map((s) => (
-                  <option key={s} value={s} className="bg-slate-900">{s}</option>
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </div>
@@ -246,47 +246,47 @@ export const DataTable: React.FC<DataTableProps> = ({
               setPageSize(Number(e.target.value));
               setCurrentPage(1);
             }}
-            className="bg-slate-950/60 border border-slate-700/80 rounded-xl px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none cursor-pointer"
+            className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none cursor-pointer"
           >
-            <option value={10} className="bg-slate-900">10 / hal</option>
-            <option value={15} className="bg-slate-900">15 / hal</option>
-            <option value={25} className="bg-slate-900">25 / hal</option>
-            <option value={50} className="bg-slate-900">50 / hal</option>
-            <option value={100} className="bg-slate-900">100 / hal</option>
+            <option value={10}>10 / hal</option>
+            <option value={15}>15 / hal</option>
+            <option value={25}>25 / hal</option>
+            <option value={50}>50 / hal</option>
+            <option value={100}>100 / hal</option>
           </select>
         </div>
       </div>
 
       {/* Main Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="bg-slate-950 text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-800">
+            <thead className="bg-[#063D2E] text-white font-semibold uppercase tracking-wider">
               <tr>
-                <th className="py-3 px-3.5 w-12 text-center">No</th>
+                <th className="py-3.5 px-3.5 w-12 text-center text-emerald-200">No</th>
                 {columns.map((col) => (
                   <th
                     key={col.key}
-                    className={`py-3 px-3.5 whitespace-nowrap ${
-                      col.isJobsiteColumn ? 'text-amber-400 font-bold bg-amber-950/20' : ''
+                    className={`py-3.5 px-3.5 whitespace-nowrap ${
+                      col.isJobsiteColumn ? 'text-emerald-200 font-bold bg-[#04281E]' : ''
                     }`}
                   >
                     {col.header}
                     {col.isJobsiteColumn && (
-                      <span className="ml-1 text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">
+                      <span className="ml-1 text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono">
                         Filter Key
                       </span>
                     )}
                   </th>
                 ))}
-                <th className="py-3 px-3.5 text-right w-24">Aksi</th>
+                <th className="py-3.5 px-3.5 text-right w-24 text-emerald-200">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/70">
+            <tbody className="divide-y divide-slate-100">
               {paginatedData.map((row, idx) => {
                 const rowIndex = (currentPage - 1) * pageSize + idx + 1;
                 return (
-                  <tr key={row.id || idx} className="hover:bg-slate-800/40 transition-colors">
+                  <tr key={row.id || idx} className="hover:bg-emerald-50/30 transition-colors">
                     <td className="py-2.5 px-3.5 text-center text-slate-400 font-mono font-medium">
                       {rowIndex}
                     </td>
@@ -306,7 +306,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                         <td
                           key={col.key}
                           className={`py-2.5 px-3.5 max-w-xs truncate ${
-                            isJobsite ? 'font-bold text-amber-300' : 'text-slate-200'
+                            isJobsite ? 'font-bold text-emerald-800 bg-emerald-50/40' : 'text-slate-800'
                           }`}
                           title={String(val || '')}
                         >
@@ -322,7 +322,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                           <button
                             type="button"
                             onClick={() => onView(row)}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
                             title="Lihat Rincian"
                           >
                             <Eye className="w-3.5 h-3.5" />
@@ -331,7 +331,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                         <button
                           type="button"
                           onClick={() => onEdit(row)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-700 transition-colors cursor-pointer"
                           title="Edit Data"
                         >
                           <Edit className="w-3.5 h-3.5" />
@@ -342,14 +342,14 @@ export const DataTable: React.FC<DataTableProps> = ({
                           <button
                             type="button"
                             onClick={() => onDelete(row)}
-                            className="p-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900 border border-rose-800/60 text-rose-300 hover:text-white transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 transition-colors cursor-pointer"
                             title="Hapus Data (HO Only)"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         ) : (
                           <div
-                            className="p-1.5 rounded-lg bg-slate-800/40 text-slate-600 cursor-not-allowed opacity-50"
+                            className="p-1.5 rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed opacity-60"
                             title="Hanya user 'HO - Balikpapan' yang berhak menghapus data"
                           >
                             <Lock className="w-3.5 h-3.5" />
@@ -364,7 +364,7 @@ export const DataTable: React.FC<DataTableProps> = ({
               {paginatedData.length === 0 && (
                 <tr>
                   <td colSpan={columns.length + 2} className="py-12 text-center text-slate-400">
-                    <p className="text-sm font-semibold">Tidak ada data yang sesuai filter / pencarian.</p>
+                    <p className="text-sm font-semibold text-slate-600">Tidak ada data yang sesuai filter / pencarian.</p>
                     <p className="text-xs mt-1 text-slate-500">
                       Klik "Tambah Data Manual" untuk memasukkan item baru.
                     </p>
@@ -376,13 +376,13 @@ export const DataTable: React.FC<DataTableProps> = ({
         </div>
 
         {/* Pagination Footer */}
-        <div className="p-3.5 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-950/60 text-xs">
-          <div className="text-slate-400">
-            Menampilkan <span className="font-semibold text-white">{filteredData.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}</span> s/d{' '}
-            <span className="font-semibold text-white">
+        <div className="p-3.5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 text-xs">
+          <div className="text-slate-600">
+            Menampilkan <span className="font-semibold text-slate-900">{filteredData.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}</span> s/d{' '}
+            <span className="font-semibold text-slate-900">
               {Math.min(currentPage * pageSize, filteredData.length)}
             </span>{' '}
-            dari <span className="font-bold text-amber-400">{filteredData.length}</span> total baris
+            dari <span className="font-bold text-emerald-800">{filteredData.length}</span> total baris
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -390,18 +390,18 @@ export const DataTable: React.FC<DataTableProps> = ({
               type="button"
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-3 py-1 font-mono font-medium text-slate-300">
+            <span className="px-3 py-1 font-mono font-medium text-slate-700">
               Hal {currentPage} / {totalPages}
             </span>
             <button
               type="button"
               onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

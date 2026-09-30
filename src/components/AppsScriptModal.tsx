@@ -139,21 +139,21 @@ export const AppsScriptModal: React.FC<AppsScriptModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-6">
+      <div className="relative w-full max-w-4xl bg-slate-900 border border-[#0B4D3B] rounded-2xl shadow-2xl overflow-hidden my-6">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/60">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#0B4D3B] bg-[#063D2E]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300">
               <Sheet className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
                 Akses Penuh Google Drive & Spreadsheets
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-mono font-bold">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-mono font-bold">
                   v2.5 Full Access
                 </span>
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-emerald-200/70">
                 Integrasi REST API Google Workspace & Web App Google Apps Script
               </p>
             </div>
@@ -161,7 +161,7 @@ export const AppsScriptModal: React.FC<AppsScriptModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 text-xs cursor-pointer"
+            className="p-1.5 text-emerald-200/70 hover:text-white rounded-lg hover:bg-[#0a4837] text-xs cursor-pointer transition"
           >
             ✕
           </button>

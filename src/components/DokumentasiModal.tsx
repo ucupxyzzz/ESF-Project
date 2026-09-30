@@ -86,19 +86,19 @@ export const DokumentasiModal: React.FC<DokumentasiModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
       <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-amber-600/20 via-amber-500/10 to-transparent border-b border-slate-800 flex items-center justify-between shrink-0">
+        <div className="px-6 py-4 bg-[#063D2E] border-b border-[#0B4D3B] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
               {isImage || isBase64Img ? <ImageIcon className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
             </div>
             <div>
               <h3 className="text-base font-bold text-white">{title}</h3>
-              <p className="text-xs text-slate-400">Lampiran Dokumentasi & File Terkait</p>
+              <p className="text-xs text-emerald-200/70">Lampiran Dokumentasi & File Terkait</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+            className="p-1.5 text-emerald-200/70 hover:text-white rounded-lg hover:bg-[#0a4837] transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -123,7 +123,7 @@ export const DokumentasiModal: React.FC<DokumentasiModalProps> = ({
                 </div>
               ) : (
                 <div className="text-center py-6">
-                  <FileText className="w-12 h-12 text-amber-400 mx-auto mb-2 opacity-80" />
+                  <FileText className="w-12 h-12 text-emerald-400 mx-auto mb-2 opacity-80" />
                   <p className="text-sm font-semibold text-white mb-1">Dokumen Tersimpan</p>
                   <p className="text-xs text-slate-400 font-mono break-all max-w-md mx-auto">{url}</p>
                 </div>
@@ -136,7 +136,7 @@ export const DokumentasiModal: React.FC<DokumentasiModalProps> = ({
                     href={url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 transition shadow-lg shadow-blue-600/20"
+                    className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white flex items-center gap-1.5 transition shadow-sm"
                   >
                     <ExternalLink className="w-3.5 h-3.5" /> Buka di Google Drive
                   </a>
@@ -145,7 +145,7 @@ export const DokumentasiModal: React.FC<DokumentasiModalProps> = ({
                   <a
                     href={url}
                     download={`${title.replace(/[^a-zA-Z0-9]/g, '_')}.png`}
-                    className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-1.5 transition shadow-lg shadow-amber-500/20"
+                    className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition shadow-sm"
                   >
                     <Download className="w-3.5 h-3.5" /> Unduh Gambar
                   </a>
@@ -191,10 +191,10 @@ export const DokumentasiModal: React.FC<DokumentasiModalProps> = ({
 
           {/* BAST Special Section: PDF Generation & Approval & Final Upload */}
           {bastItem && (
-            <div className="p-4 bg-slate-950/70 border border-amber-500/30 rounded-xl space-y-4">
+            <div className="p-4 bg-slate-950/70 border border-emerald-500/30 rounded-xl space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                  <h4 className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4" /> Alur Dokumen BAST & Persetujuan (Two Approvals)
                   </h4>
                   <p className="text-[11px] text-slate-400 mt-0.5">
@@ -221,7 +221,7 @@ export const DokumentasiModal: React.FC<DokumentasiModalProps> = ({
                       onClose();
                       onOpenHoSign();
                     }}
-                    className="px-3.5 py-2 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-1.5 transition shadow-lg shadow-amber-500/20"
+                    className="px-3.5 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition shadow-sm"
                   >
                     <ShieldCheck className="w-4 h-4" /> Berikan Tanda Tangan HO Balikpapan
                   </button>
@@ -238,7 +238,7 @@ export const DokumentasiModal: React.FC<DokumentasiModalProps> = ({
                   }}
                   className={`px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition ${
                     isHoApproved
-                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20'
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
                       : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                   }`}
                 >
@@ -250,7 +250,7 @@ export const DokumentasiModal: React.FC<DokumentasiModalProps> = ({
               {onFinalUpload && (
                 <div className="pt-3 border-t border-slate-800 space-y-2">
                   <label className="block text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                    <Upload className="w-3.5 h-3.5 text-amber-400" />
+                    <Upload className="w-3.5 h-3.5 text-emerald-400" />
                     Final Upload Dokumen BAST (Format Penamaan: {bastItem.noBast})
                   </label>
                   <div className="flex items-center gap-3">
@@ -258,7 +258,7 @@ export const DokumentasiModal: React.FC<DokumentasiModalProps> = ({
                       type="file"
                       accept=".pdf,image/*,.doc,.docx"
                       onChange={handleFileChange}
-                      className="block w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-amber-400 hover:file:bg-slate-700 cursor-pointer"
+                      className="block w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-emerald-400 hover:file:bg-slate-700 cursor-pointer"
                     />
                     <button
                       type="button"
@@ -268,7 +268,7 @@ export const DokumentasiModal: React.FC<DokumentasiModalProps> = ({
                         uploadSuccess
                           ? 'bg-emerald-600 text-white'
                           : selectedFile
-                          ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-lg shadow-amber-500/20'
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
                           : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                       }`}
                     >
@@ -295,10 +295,10 @@ export const DokumentasiModal: React.FC<DokumentasiModalProps> = ({
 
           {/* BA Kerusakan Special Section: PDF Generation & Final Upload (Requirement 3) */}
           {kerusakanItem && (
-            <div className="p-4 bg-slate-950/70 border border-amber-500/30 rounded-xl space-y-4">
+            <div className="p-4 bg-slate-950/70 border border-emerald-500/30 rounded-xl space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                  <h4 className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                     <FileText className="w-4 h-4" /> Dokumen Berita Acara Kerusakan Alat (4 Approval)
                   </h4>
                   <p className="text-[11px] text-slate-400 mt-0.5">
@@ -308,7 +308,7 @@ export const DokumentasiModal: React.FC<DokumentasiModalProps> = ({
                 <button
                   type="button"
                   onClick={() => PdfService.downloadBaKerusakanPdf(kerusakanItem)}
-                  className="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition shadow-lg shadow-emerald-600/20 cursor-pointer"
+                  className="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition shadow-sm cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" /> Download PDF BA Kerusakan
                 </button>
@@ -318,7 +318,7 @@ export const DokumentasiModal: React.FC<DokumentasiModalProps> = ({
               {onFinalUpload && (
                 <div className="pt-3 border-t border-slate-800 space-y-2">
                   <label className="block text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                    <Upload className="w-3.5 h-3.5 text-amber-400" />
+                    <Upload className="w-3.5 h-3.5 text-emerald-400" />
                     Final Upload Dokumen BA Kerusakan (Format Penamaan: {kerusakanItem.noBa || 'BA-KERUSAKAN'})
                   </label>
                   <div className="flex items-center gap-3">
@@ -326,7 +326,7 @@ export const DokumentasiModal: React.FC<DokumentasiModalProps> = ({
                       type="file"
                       accept=".pdf,image/*,.doc,.docx"
                       onChange={handleFileChange}
-                      className="block w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-amber-400 hover:file:bg-slate-700 cursor-pointer"
+                      className="block w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-emerald-400 hover:file:bg-slate-700 cursor-pointer"
                     />
                     <button
                       type="button"
@@ -336,7 +336,7 @@ export const DokumentasiModal: React.FC<DokumentasiModalProps> = ({
                         uploadSuccess
                           ? 'bg-emerald-600 text-white'
                           : selectedFile
-                          ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-lg shadow-amber-500/20'
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
                           : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                       }`}
                     >

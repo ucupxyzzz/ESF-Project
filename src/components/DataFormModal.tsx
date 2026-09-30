@@ -625,21 +625,21 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
         className="hidden"
       />
 
-      <div className="relative w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-3xl bg-slate-900 border border-[#0B4D3B] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-amber-600/20 via-amber-500/10 to-transparent border-b border-slate-800 flex items-center justify-between shrink-0">
+        <div className="px-6 py-4 bg-[#063D2E] border-b border-[#0B4D3B] flex items-center justify-between shrink-0">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <span>{isEdit ? 'Edit Data' : 'Tambah Data Baru'}:</span>
-              <span className="text-amber-400">{getModuleTitle()}</span>
+              <span className="text-emerald-300">{getModuleTitle()}</span>
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-emerald-200/70">
               {isEdit ? 'Perbarui informasi data yang tersimpan' : 'Input data baru dan otomatis sinkronkan ke Google Spreadsheet'}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+            className="p-1.5 text-emerald-200/70 hover:text-white rounded-lg hover:bg-[#0a4837] transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -649,14 +649,14 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4">
           {/* Jobsite Selector (HO only can change) */}
           {isHO ? (
-            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-2">
-              <label className="block text-xs font-bold text-amber-400 mb-1">
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mb-2">
+              <label className="block text-xs font-bold text-emerald-400 mb-1">
                 Pilih Jobsite / Lokasi Proyek (Kolom Jobsite)
               </label>
               <select
                 value={formData.jobsite || ALL_JOBSITES[0]}
                 onChange={(e) => handleChange('jobsite', e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-amber-500/40 rounded-xl text-xs text-white font-semibold"
+                className="w-full px-3 py-2 bg-slate-950 border border-emerald-500/40 rounded-xl text-xs text-white font-semibold"
               >
                 {ALL_JOBSITES.map((site) => (
                   <option key={site} value={site}>
@@ -668,7 +668,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
           ) : (
             <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-950/60 rounded-xl border border-slate-800 mb-2">
               <span className="text-xs text-slate-400 font-medium">Jobsite Terkunci:</span>
-              <span className="text-xs font-bold text-amber-400 font-mono">{currentUser.jobsite}</span>
+              <span className="text-xs font-bold text-emerald-400 font-mono">{currentUser.jobsite}</span>
             </div>
           )}
 
@@ -2037,7 +2037,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
               <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
                 <label className="block text-xs font-bold text-slate-300 flex items-center justify-between">
                   <span>Lampiran Dokumen BAST (Kolom J)</span>
-                  <span className="text-[10px] text-amber-400 font-mono">Tersimpan ke GDrive BAST</span>
+                  <span className="text-[10px] text-emerald-400 font-mono">Tersimpan ke GDrive BAST</span>
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
@@ -2045,7 +2045,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                     onClick={() => handleTriggerUpload('bast', true)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 cursor-pointer border border-slate-700"
                   >
-                    <Camera className="w-3.5 h-3.5 text-amber-400" />
+                    <Camera className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Ambil Foto (Kamera)</span>
                   </button>
                   <button
@@ -2053,7 +2053,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                     onClick={() => handleTriggerUpload('bast', false)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 cursor-pointer border border-slate-700"
                   >
-                    <Upload className="w-3.5 h-3.5 text-amber-400" />
+                    <Upload className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Pilih File PDF / Scan</span>
                   </button>
                   {dokumenBast && (
@@ -2091,7 +2091,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 transition shadow-lg shadow-amber-500/20 cursor-pointer disabled:opacity-50"
+              className="px-6 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-lg shadow-emerald-950/40 cursor-pointer disabled:opacity-50"
             >
               {isSubmitting ? 'Menyimpan...' : isEdit ? 'Simpan Perubahan' : 'Simpan Data'}
             </button>
