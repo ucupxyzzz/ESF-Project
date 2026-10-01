@@ -314,6 +314,20 @@ function findRowIndexByKey(sheet, key) {
   const cleanKey = String(key).trim().toLowerCase();
   const data = sheet.getDataRange().getValues();
 
+  // Dukungan pencarian kunci gabungan (misal: "ID-PEMINJAMAN_KODE-ALAT")
+  if (cleanKey.includes('_')) {
+    const parts = cleanKey.split('_');
+    const partA = parts[0].trim();
+    const partB = parts[1].trim();
+    for (let i = 1; i < data.length; i++) {
+      const colA = String(data[i][0] || "").trim().toLowerCase();
+      const colB = String(data[i][1] || "").trim().toLowerCase();
+      if (colA === partA && colB === partB) {
+        return i + 1;
+      }
+    }
+  }
+
   for (let i = 1; i < data.length; i++) {
     // Periksa Kolom A (index 0)
     const colA = String(data[i][0] || "").trim().toLowerCase();

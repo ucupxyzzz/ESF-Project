@@ -11,7 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  RefreshCw
+  RefreshCw,
+  RotateCcw
 } from 'lucide-react';
 
 interface ColumnDef {
@@ -32,6 +33,7 @@ interface DataTableProps {
   onEdit: (item: any) => void;
   onDelete: (item: any) => void;
   onView?: (item: any) => void;
+  onReturn?: (item: any) => void;
   onManualSync?: () => void;
   isSyncing?: boolean;
 }
@@ -46,6 +48,7 @@ export const DataTable: React.FC<DataTableProps> = ({
   onEdit,
   onDelete,
   onView,
+  onReturn,
   onManualSync,
   isSyncing
 }) => {
@@ -318,6 +321,22 @@ export const DataTable: React.FC<DataTableProps> = ({
                     {/* Actions Column */}
                     <td className="py-2.5 px-3.5 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
+                        {onReturn && (
+                          <button
+                            type="button"
+                            onClick={() => onReturn(row)}
+                            className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                              row.status === 'Kembali'
+                                ? 'bg-emerald-50 hover:bg-emerald-100 border-emerald-300 text-emerald-800'
+                                : 'bg-emerald-600 hover:bg-emerald-500 border-emerald-600 text-white'
+                            }`}
+                            title={row.status === 'Kembali' ? 'Alat Sudah Kembali (Klik untuk perbarui data)' : 'Kembalikan Alat ke Tool Room'}
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>{row.status === 'Kembali' ? 'Kembali' : 'Kembalikan'}</span>
+                          </button>
+                        )}
+
                         {onView && (
                           <button
                             type="button"

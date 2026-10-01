@@ -26,6 +26,7 @@ import { DeveloperPanel } from './components/DeveloperPanel';
 import { AppsScriptModal } from './components/AppsScriptModal';
 import { DokumentasiModal } from './components/DokumentasiModal';
 import { HoSignatureModal } from './components/HoSignatureModal';
+import { ReturnLoanModal } from './components/ReturnLoanModal';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { FileText, Camera, Download, ExternalLink, ShieldCheck } from 'lucide-react';
 
@@ -85,6 +86,16 @@ export default function App() {
     isOpen: false,
     bastItem: null
   });
+
+  // Return Loan Modal state (Aksi Kembalikan Alat - Kolom J & M)
+  const [returnLoanModalState, setReturnLoanModalState] = useState<{
+    isOpen: boolean;
+    loanItem: PeminjamanItem | null;
+  }>({
+    isOpen: false,
+    loanItem: null
+  });
+  const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
 
   // Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -628,6 +639,69 @@ export default function App() {
     setItemToDelete(null);
   };
 
+  // Handler Fitur Aksi "Kembalikan" Tools (Kolom J & M Spreadsheet)
+  const handleOpenReturnModal = (item: PeminjamanItem) => {
+    setReturnLoanModalState({
+      isOpen: true,
+      loanItem: item
+    });
+  };
+
+  const handleConfirmReturn = async (
+    item: PeminjamanItem,
+    tglRealisasiKembali: string,
+    kondisiAkhir: string
+  ) => {
+    if (!currentUser) return;
+    try {
+      setIsSubmittingReturn(true);
+      const updatedItem: PeminjamanItem = {
+        ...item,
+        tglRealisasiKembali,
+        kondisiAkhir,
+        status: 'Kembali',
+        updatedAt: new Date().toISOString()
+      };
+
+      // 1. Update local storage & state
+      const currentList = StorageService.getPeminjaman();
+      const updatedList = currentList.map((p) => {
+        if (p.id === item.id || (p.idPeminjaman && p.idPeminjaman === item.idPeminjaman && p.kodeAlat === item.kodeAlat)) {
+          return updatedItem;
+        }
+        return p;
+      });
+      StorageService.savePeminjaman(updatedList);
+      setPeminjaman(updatedList);
+
+      // Record pending item to guarantee resilience
+      const itemKey = `${updatedItem.idPeminjaman || updatedItem.noPeminjaman || ''}_${updatedItem.kodeAlat || ''}`;
+      StorageService.recordPendingItem('peminjaman', itemKey, updatedItem);
+
+      // 2. Push update to Google Spreadsheet via Apps Script
+      await AppsScriptSyncService.pushItemToSheet('peminjaman-tools', 'update', updatedItem, currentUser);
+
+      addToast(
+        'success',
+        'Tools Berhasil Dikembalikan',
+        `${updatedItem.namaAsset || updatedItem.namaTool || 'Alat'} tercatat kembali (${kondisiAkhir}). Data Kolom J & M berhasil disinkronkan ke Spreadsheet.`
+      );
+
+      setReturnLoanModalState({ isOpen: false, loanItem: null });
+
+      // Quiet re-fetch to confirm spreadsheet state
+      setTimeout(() => {
+        AppsScriptSyncService.pullDataFromSheet(true).then((r) => {
+          if (r.hasChanged) reloadAllData();
+        });
+      }, 2500);
+    } catch (err: any) {
+      addToast('error', 'Gagal Memproses Pengembalian', err.message || 'Terjadi kesalahan sistem');
+    } finally {
+      setIsSubmittingReturn(false);
+    }
+  };
+
   // Not logged in -> Render Login Page
   if (!currentUser) {
     return (
@@ -710,7 +784,19 @@ export default function App() {
       header: 'Estimasi Kembali (I)',
       render: (row: PeminjamanItem) => row.estimasiKembali || row.tglRencanaKembali || '-'
     },
-    { key: 'tglRealisasiKembali', header: 'Tgl Realisasi Kembali (J)' },
+    {
+      key: 'tglRealisasiKembali',
+      header: 'Tgl Realisasi Kembali (J)',
+      render: (row: PeminjamanItem) => (
+        row.tglRealisasiKembali ? (
+          <span className="font-mono text-emerald-800 font-semibold">
+            {row.tglRealisasiKembali}
+          </span>
+        ) : (
+          <span className="text-slate-400 italic text-[11px]">-</span>
+        )
+      )
+    },
     {
       key: 'status',
       header: 'Status (K)',
@@ -729,7 +815,24 @@ export default function App() {
       )
     },
     { key: 'kondisiAwal', header: 'Kondisi Awal (L)' },
-    { key: 'kondisiAkhir', header: 'Kondisi Akhir (M)' },
+    {
+      key: 'kondisiAkhir',
+      header: 'Kondisi Akhir (M)',
+      render: (row: PeminjamanItem) => {
+        if (!row.kondisiAkhir) return <span className="text-slate-400 italic text-[11px]">-</span>;
+        const lower = row.kondisiAkhir.toLowerCase();
+        let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
+        if (lower.includes('baik')) badgeColor = 'bg-emerald-50 text-emerald-800 border-emerald-300 font-bold';
+        else if (lower.includes('ringan')) badgeColor = 'bg-amber-50 text-amber-800 border-amber-300 font-bold';
+        else if (lower.includes('berat')) badgeColor = 'bg-rose-50 text-rose-800 border-rose-300 font-bold';
+
+        return (
+          <span className={`px-2 py-0.5 rounded-md text-[10px] border ${badgeColor}`}>
+            {row.kondisiAkhir}
+          </span>
+        );
+      }
+    },
     { key: 'keperluan', header: 'Keperluan (N)' }
   ];
 
@@ -1212,6 +1315,7 @@ export default function App() {
               onAdd={() => handleOpenCreateModal('peminjaman-tools')}
               onEdit={(item) => handleOpenEditModal('peminjaman-tools', item)}
               onDelete={(item) => handlePromptDelete('peminjaman-tools', item)}
+              onReturn={(item) => handleOpenReturnModal(item)}
               onManualSync={handleManualSync}
               isSyncing={isSyncing}
             />
@@ -1340,6 +1444,15 @@ export default function App() {
         bastItem={hoSignatureModalState.bastItem}
         onApprove={handleApproveBast}
         currentUserName={currentUser?.name || currentUser?.username || 'HO - Balikpapan'}
+      />
+
+      {/* Return Loan Modal (Aksi Kembalikan Tools - Kolom J & M) */}
+      <ReturnLoanModal
+        isOpen={returnLoanModalState.isOpen}
+        onClose={() => setReturnLoanModalState({ isOpen: false, loanItem: null })}
+        loanItem={returnLoanModalState.loanItem}
+        onConfirmReturn={handleConfirmReturn}
+        isSubmitting={isSubmittingReturn}
       />
 
       {/* Delete Confirmation Modal (HO - Balikpapan Only) */}

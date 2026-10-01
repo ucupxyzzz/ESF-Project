@@ -3,7 +3,8 @@ import { SheetModule, User, AssetItem } from '../types';
 import { ALL_JOBSITES } from '../data/defaultUsers';
 import { StorageService } from '../services/storage';
 import { getNextLoanId, getNextLoanIdWithOffset, getJobsiteShortCode } from '../utils/loanIdGenerator';
-import { X, Plus, Trash2, Camera, Upload, CheckCircle2, FileText, Image as ImageIcon } from 'lucide-react';
+import { DateInput } from './DateInput';
+import { X, Plus, Trash2, Camera, Upload, CheckCircle2, FileText, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 
 interface DataFormModalProps {
   isOpen: boolean;
@@ -646,7 +647,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 pb-28 overflow-y-auto space-y-4">
           {/* Jobsite Selector (HO only can change) */}
           {isHO ? (
             <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mb-2">
@@ -745,11 +746,10 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
                     Tgl Supply (Kolom F)
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={formData.tglSupply || ''}
-                    onChange={(e) => handleChange('tglSupply', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    onChange={(val) => handleChange('tglSupply', val)}
+                    placeholder="YYYY-MM-DD / manual"
                   />
                 </div>
               </div>
@@ -859,6 +859,19 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Tgl Supply (Kolom F)
+                  </label>
+                  <DateInput
+                    value={formData.tglSupply || ''}
+                    onChange={(val) => handleChange('tglSupply', val)}
+                    placeholder="YYYY-MM-DD / manual"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
                     Kondisi (Kolom I)
                   </label>
                   <input
@@ -868,9 +881,6 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
                     Lokasi Penempatan (Kolom G)
@@ -984,11 +994,10 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
                     Tgl Pinjam (Kolom H)
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={formData.tglPinjam || ''}
-                    onChange={(e) => handleChange('tglPinjam', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    onChange={(val) => handleChange('tglPinjam', val)}
+                    placeholder="YYYY-MM-DD / manual"
                     required
                   />
                 </div>
@@ -996,15 +1005,61 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
                     Estimasi Kembali (Kolom I)
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={formData.estimasiKembali || ''}
-                    onChange={(e) => handleChange('estimasiKembali', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    onChange={(val) => handleChange('estimasiKembali', val)}
+                    placeholder="YYYY-MM-DD / manual"
                     required
                   />
                 </div>
               </div>
+
+              {/* Kolom J & Kolom M Realisasi Pengembalian */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center justify-between">
+                    <span>Tgl Realisasi Kembali (Kolom J)</span>
+                    <span className="text-[10px] text-emerald-400 font-mono">Bisa manual/kalender</span>
+                  </label>
+                  <DateInput
+                    value={formData.tglRealisasiKembali || ''}
+                    onChange={(val) => handleChange('tglRealisasiKembali', val)}
+                    placeholder="YYYY-MM-DD / kosongkan jika belum kembali"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center justify-between">
+                    <span>Kondisi Akhir (Kolom M)</span>
+                    <span className="text-[10px] text-emerald-400">Pilihan Wajib</span>
+                  </label>
+                  <select
+                    value={formData.kondisiAkhir || ''}
+                    onChange={(e) => {
+                      handleChange('kondisiAkhir', e.target.value);
+                      if (e.target.value && (!formData.status || formData.status === 'Dipinjam')) {
+                        handleChange('status', 'Kembali');
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                  >
+                    <option value="">-- Belum Dikembalikan --</option>
+                    <option value="Baik (Ready for Operation)">Baik (Ready for Operation)</option>
+                    <option value="Rusak Ringan (Minor Defect)">Rusak Ringan (Minor Defect)</option>
+                    <option value="Rusak Berat(Non-Operational)">Rusak Berat(Non-Operational)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Peringatan otomatis jika kondisi akhir rusak */}
+              {formData.kondisiAkhir && (formData.kondisiAkhir.includes('Rusak') || formData.kondisiAkhir.includes('Defect') || formData.kondisiAkhir.includes('Non-Operational')) && (
+                <div className="p-3 rounded-xl bg-amber-950/60 border border-amber-500/50 flex items-start gap-2.5 text-xs text-amber-200 animate-in fade-in slide-in-from-top-1">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-amber-300 block">Peringatan Kondisi Akhir Rusak (Kolom M):</span>
+                    Alat dikembalikan dengan kondisi rusak ({formData.kondisiAkhir}). Pengguna disarankan untuk mempertimbangkan pembuatan <b>Berita Acara Kerusakan (BA Kerusakan)</b> di modul BA Kerusakan.
+                  </div>
+                </div>
+              )}
 
               {/* Multi-Tool Loan Selection (Requirement 1) */}
               <div className="space-y-3 pt-2">
@@ -1175,29 +1230,40 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
                     Tgl Pengadaan (Kolom I)
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={formData.tglPengadaan || formData.tglPengajuan || ''}
-                    onChange={(e) => {
-                      handleChange('tglPengadaan', e.target.value);
-                      handleChange('tglPengajuan', e.target.value);
+                    onChange={(val) => {
+                      handleChange('tglPengadaan', val);
+                      handleChange('tglPengajuan', val);
                     }}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    placeholder="YYYY-MM-DD / manual"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  No CER (Kolom E)
-                </label>
-                <input
-                  type="text"
-                  value={formData.noCer || ''}
-                  onChange={(e) => handleChange('noCer', e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                  placeholder="CER-..."
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    No CER (Kolom E)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.noCer || ''}
+                    onChange={(e) => handleChange('noCer', e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    placeholder="CER-..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Tgl Supply (Kolom S)
+                  </label>
+                  <DateInput
+                    value={formData.tglSupply || ''}
+                    onChange={(val) => handleChange('tglSupply', val)}
+                    placeholder="YYYY-MM-DD / manual"
+                  />
+                </div>
               </div>
 
               {/* Dynamic Multiple Items List */}
@@ -1398,14 +1464,13 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
                     Tgl Kerusakan (Kolom I)
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={formData.tglKerusakan || formData.tglKejadian || ''}
-                    onChange={(e) => {
-                      handleChange('tglKerusakan', e.target.value);
-                      handleChange('tglKejadian', e.target.value);
+                    onChange={(val) => {
+                      handleChange('tglKerusakan', val);
+                      handleChange('tglKejadian', val);
                     }}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    placeholder="YYYY-MM-DD / manual"
                   />
                 </div>
                 <div>
@@ -1555,16 +1620,15 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                       </div>
                       <div>
                         <label className="block text-[11px] text-slate-400 mb-1">Tgl Supply (Kolom H)</label>
-                        <input
-                          type="date"
+                        <DateInput
                           value={item.tglSupply}
-                          onChange={(e) => {
+                          onChange={(val) => {
                             const copy = [...damagedItems];
-                            copy[idx].tglSupply = e.target.value;
-                            copy[idx].lifeTime = calculateLifeTime(e.target.value, formData.tglKerusakan || new Date().toISOString());
+                            copy[idx].tglSupply = val;
+                            copy[idx].lifeTime = calculateLifeTime(val, formData.tglKerusakan || new Date().toISOString());
                             setDamagedItems(copy);
                           }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                          placeholder="YYYY-MM-DD / manual"
                         />
                       </div>
                       <div>
@@ -1662,14 +1726,13 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
                     Date OSR (Kolom C)
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={formData.dateOsr || formData.tglKirim || ''}
-                    onChange={(e) => {
-                      handleChange('dateOsr', e.target.value);
-                      handleChange('tglKirim', e.target.value);
+                    onChange={(val) => {
+                      handleChange('dateOsr', val);
+                      handleChange('tglKirim', val);
                     }}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    placeholder="YYYY-MM-DD / manual"
                   />
                 </div>
               </div>
@@ -1858,14 +1921,13 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
                     Date (Kolom C)
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={formData.date || formData.tglSerahTerima || ''}
-                    onChange={(e) => {
-                      handleChange('date', e.target.value);
-                      handleChange('tglSerahTerima', e.target.value);
+                    onChange={(val) => {
+                      handleChange('date', val);
+                      handleChange('tglSerahTerima', val);
                     }}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    placeholder="YYYY-MM-DD / manual"
                   />
                 </div>
               </div>
