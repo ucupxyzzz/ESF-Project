@@ -1,4 +1,4 @@
-import { PeminjamanItem } from '../types';
+import { PeminjamanItem, PengadaanItem, BaKerusakanItem } from '../types';
 
 /**
  * Ekstrak kode singkatan jobsite standar untuk nomor dokumen
@@ -105,3 +105,74 @@ export const getNextLoanIdWithOffset = (
   const seqPadded = String(nextSeq).padStart(4, '0');
   return `LOAN-${code}-${seqPadded}`;
 };
+
+/**
+ * Format No Pengadaan (Kolom A):
+ * .../PLANT/(KODEJOBSITE)/TOOLSREQ/(mm....)/(yyyy......)
+ * Contoh: "001/PLANT/GAM/TOOLSREQ/10/2026"
+ */
+export const getNextPengadaanId = (
+  jobsite: string,
+  existingItems: PengadaanItem[]
+): string => {
+  const code = getJobsiteShortCode(jobsite);
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yyyy = String(now.getFullYear());
+  let maxSeq = 0;
+
+  const regex = /(?:NO\s*:\s*)?(\d+)\/PLANT\//i;
+
+  if (Array.isArray(existingItems)) {
+    existingItems.forEach((item) => {
+      const raw = item.noPengadaan || item.noPoPr || '';
+      const match = raw.match(regex);
+      if (match && match[1]) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxSeq) {
+          maxSeq = num;
+        }
+      }
+    });
+  }
+
+  const nextSeq = maxSeq + 1;
+  const seqPadded = String(nextSeq).padStart(3, '0');
+  return `${seqPadded}/PLANT/${code}/TOOLSREQ/${mm}/${yyyy}`;
+};
+
+/**
+ * Format No Berita Acara Kerusakan (Kolom A):
+ * .../BAK-TOOL/(KODEJOBSITE)/(mm....)/(yyyy........)
+ * Contoh: "001/BAK-TOOL/GAM/10/2026"
+ */
+export const getNextBaKerusakanId = (
+  jobsite: string,
+  existingItems: BaKerusakanItem[]
+): string => {
+  const code = getJobsiteShortCode(jobsite);
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yyyy = String(now.getFullYear());
+  let maxSeq = 0;
+
+  const regex = /(?:NO\s*:\s*)?(\d+)\/BAK-TOOL\//i;
+
+  if (Array.isArray(existingItems)) {
+    existingItems.forEach((item) => {
+      const raw = item.noBa || '';
+      const match = raw.match(regex);
+      if (match && match[1]) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxSeq) {
+          maxSeq = num;
+        }
+      }
+    });
+  }
+
+  const nextSeq = maxSeq + 1;
+  const seqPadded = String(nextSeq).padStart(3, '0');
+  return `${seqPadded}/BAK-TOOL/${code}/${mm}/${yyyy}`;
+};
+

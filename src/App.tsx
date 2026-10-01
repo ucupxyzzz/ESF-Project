@@ -663,7 +663,7 @@ export default function App() {
         updatedAt: new Date().toISOString()
       };
 
-      // 1. Update local storage & state
+      // 1. Update local storage & state for peminjaman IMMEDIATELY
       const currentList = StorageService.getPeminjaman();
       const updatedList = currentList.map((p) => {
         if (p.id === item.id || (p.idPeminjaman && p.idPeminjaman === item.idPeminjaman && p.kodeAlat === item.kodeAlat)) {
@@ -678,26 +678,91 @@ export default function App() {
       const itemKey = `${updatedItem.idPeminjaman || updatedItem.noPeminjaman || ''}_${updatedItem.kodeAlat || ''}`;
       StorageService.recordPendingItem('peminjaman', itemKey, updatedItem);
 
-      // 2. Push update to Google Spreadsheet via Apps Script
-      await AppsScriptSyncService.pushItemToSheet('peminjaman-tools', 'update', updatedItem, currentUser);
+      // 2. INTEGRASI MODUL POPULASI ASSET:
+      // Jika tools yang dipinjam dikembalikan dengan kondisi rusak, update juga kondisi tools pada modul populasi asset
+      const isDamaged =
+        kondisiAkhir.includes('Rusak') ||
+        kondisiAkhir.includes('Defect') ||
+        kondisiAkhir.includes('Non-Operational');
+
+      const targetToolCode = (item.kodeAlat || (item as any).noRegistrasi || '').trim().toLowerCase();
+      const targetToolName = (item.namaAsset || item.namaTool || '').trim().toLowerCase();
+      
+      const currentAssets = StorageService.getAssets();
+      let matchedAsset: AssetItem | null = null;
+
+      if (isDamaged) {
+        const updatedAssetsList = currentAssets.map((asset) => {
+          const assetReg = (asset.noRegistrasi || '').trim().toLowerCase();
+          const assetName = (asset.namaAsset || '').trim().toLowerCase();
+          const isMatch = (targetToolCode && assetReg === targetToolCode) || 
+                          (!targetToolCode && targetToolName && assetName === targetToolName);
+          
+          if (isMatch) {
+            matchedAsset = {
+              ...asset,
+              kondisiAwal: kondisiAkhir,
+              updatedAt: new Date().toISOString()
+            };
+            return matchedAsset;
+          }
+          return asset;
+        });
+
+        if (matchedAsset) {
+          StorageService.saveAssets(updatedAssetsList);
+          setAssets(updatedAssetsList);
+          StorageService.recordPendingItem('assets', (matchedAsset as AssetItem).noRegistrasi, matchedAsset);
+        }
+      }
+
+      // 3. TUTUP MODAL SECARA INSTAN (0 Lag) & TAMPILKAN FEEDBACK
+      setReturnLoanModalState({ isOpen: false, loanItem: null });
+      setIsSubmittingReturn(false);
 
       addToast(
         'success',
         'Tools Berhasil Dikembalikan',
-        `${updatedItem.namaAsset || updatedItem.namaTool || 'Alat'} tercatat kembali (${kondisiAkhir}). Data Kolom J & M berhasil disinkronkan ke Spreadsheet.`
+        `${updatedItem.namaAsset || updatedItem.namaTool || 'Alat'} tercatat kembali (${kondisiAkhir}). Data Kolom J & M berhasil disimpan.`
       );
 
-      setReturnLoanModalState({ isOpen: false, loanItem: null });
+      if (isDamaged && matchedAsset) {
+        addToast(
+          'info',
+          'Populasi Asset Terupdate',
+          `Kondisi alat ${(matchedAsset as AssetItem).noRegistrasi} pada Populasi Asset otomatis disinkronkan menjadi "${kondisiAkhir}".`
+        );
+      }
+
+      // 4. SINKRONISASI KE GOOGLE SPREADSHEET SECARA PARALEL (Background Asynchronous)
+      // Menghilangkan jeda/freeze dengan menjalankan push secara paralel tanpa memblokir UI
+      const syncTasks: Promise<any>[] = [
+        AppsScriptSyncService.pushItemToSheet('peminjaman-tools', 'update', updatedItem, currentUser)
+      ];
+
+      if (isDamaged && matchedAsset) {
+        syncTasks.push(
+          AppsScriptSyncService.pushItemToSheet('populasi-asset', 'update', matchedAsset, currentUser)
+        );
+      }
+
+      Promise.allSettled(syncTasks).then((results) => {
+        const anyFailed = results.some(r => r.status === 'rejected');
+        if (anyFailed) {
+          console.warn('Background sync encountered network warning, recorded in pending items.');
+        }
+      }).catch((syncErr) => {
+        console.warn('Background sync error:', syncErr);
+      });
 
       // Quiet re-fetch to confirm spreadsheet state
       setTimeout(() => {
         AppsScriptSyncService.pullDataFromSheet(true).then((r) => {
           if (r.hasChanged) reloadAllData();
         });
-      }, 2500);
+      }, 4000);
     } catch (err: any) {
       addToast('error', 'Gagal Memproses Pengembalian', err.message || 'Terjadi kesalahan sistem');
-    } finally {
       setIsSubmittingReturn(false);
     }
   };
@@ -981,6 +1046,15 @@ export default function App() {
           }`}
         >
           {row.status || 'Investigasi'}
+        </span>
+      )
+    },
+    {
+      key: 'kronologi',
+      header: 'Kronologi (N)',
+      render: (row: BaKerusakanItem) => (
+        <span className="text-xs text-slate-700 max-w-xs line-clamp-2" title={row.kronologi || row.kronologiKerusakan || ''}>
+          {row.kronologi || row.kronologiKerusakan || '-'}
         </span>
       )
     },

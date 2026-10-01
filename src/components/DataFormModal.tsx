@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SheetModule, User, AssetItem } from '../types';
 import { ALL_JOBSITES } from '../data/defaultUsers';
 import { StorageService } from '../services/storage';
-import { getNextLoanId, getNextLoanIdWithOffset, getJobsiteShortCode } from '../utils/loanIdGenerator';
+import { getNextLoanId, getNextLoanIdWithOffset, getJobsiteShortCode, getNextPengadaanId, getNextBaKerusakanId } from '../utils/loanIdGenerator';
 import { DateInput } from './DateInput';
 import { X, Plus, Trash2, Camera, Upload, CheckCircle2, FileText, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 
@@ -205,9 +205,11 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
           }]);
           break;
         }
-        case 'pengadaan-barang':
+        case 'pengadaan-barang': {
+          const nextPgdId = getNextPengadaanId(defaultJobsite, StorageService.getPengadaan());
           setFormData({
-            noPengadaan: `REQ-${siteCode}-${Date.now().toString().slice(-4)}`,
+            noPengadaan: nextPgdId,
+            noPoPr: nextPgdId,
             jobsite: defaultJobsite,
             tglPengadaan: today,
             noCer: '',
@@ -215,22 +217,32 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
             status: 'Draft'
           });
           setPengadaanItems([
-            { kategori: 'Common Tools', typeBarang: '', partNumber: '', namaAlat: '', qty: '1' }
+            { kategori: 'Common Tools', typeBarang: 'Pengadaan Baru', partNumber: '', namaAlat: '', qty: '1' }
           ]);
           break;
-        case 'ba-kerusakan':
+        }
+        case 'ba-kerusakan': {
+          const nextBaId = getNextBaKerusakanId(defaultJobsite, StorageService.getKerusakan());
           setFormData({
-            noBa: `BA-KRS-${siteCode}-${Date.now().toString().slice(-4)}`,
-            noOsr: `OSR-${Date.now().toString().slice(-4)}`,
+            noBa: nextBaId,
+            noOsr: '',
             jobsite: defaultJobsite,
             tglKerusakan: today,
-            action: 'Repair di Site',
-            status: 'Investigasi'
+            action: 'Pergantian Baru',
+            status: 'Investigasi',
+            kronologi: '',
+            noRegister: '',
+            namaAsset: '',
+            brand: '',
+            tglSupply: '',
+            jenisTools: 'Common Tools',
+            lifeTime: ''
           });
           setDamagedItems([
             { noRegister: '', namaAsset: '', brand: '', tglSupply: '', jenisTools: 'Common Tools', lifeTime: '' }
           ]);
           break;
+        }
         case 'osr-tools':
           setFormData({
             noOsr: `${Math.floor(Math.random() * 900) + 100}/OSR/KAI-${siteCode}/${new Date().getFullYear()}`,
@@ -283,6 +295,12 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
           const nextLoan = getNextLoanId(value, StorageService.getPeminjaman());
           next.idPeminjaman = nextLoan;
           next.noPeminjaman = nextLoan;
+        } else if (module === 'pengadaan-barang') {
+          const nextPgd = getNextPengadaanId(value, StorageService.getPengadaan());
+          next.noPengadaan = nextPgd;
+          next.noPoPr = nextPgd;
+        } else if (module === 'ba-kerusakan') {
+          next.noBa = getNextBaKerusakanId(value, StorageService.getKerusakan());
         } else if (module === 'populasi-asset') {
           next.noRegistrasi = `TC-${sc}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
         } else if (module === 'populasi-toolbox') {
@@ -495,27 +513,36 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
       return;
     }
 
-    // 3. MULTI-ITEM HANDLING FOR BA KERUSAKAN (Requirement 3 & 4)
+    // 3. SINGLE ITEM HANDLING FOR BA KERUSAKAN (Requirement: Hapus Fitur Multi Input)
     if (module === 'ba-kerusakan') {
-      const items = damagedItems.map((di, idx) => ({
-        id: isEdit ? (formData.id || `bak-${timestamp}`) : `bak-${timestamp}-${idx}`,
+      const primaryNoReg = formData.noRegister || (damagedItems[0]?.noRegister) || '';
+      const primaryNamaAsset = formData.namaAsset || formData.namaAlat || (damagedItems[0]?.namaAsset) || '';
+      const primaryBrand = formData.brand || (damagedItems[0]?.brand) || '';
+      const primaryTglSupply = formData.tglSupply || (damagedItems[0]?.tglSupply) || '';
+      const primaryJenisTools = formData.jenisTools || (damagedItems[0]?.jenisTools) || 'Common Tools';
+      const primaryLifeTime = formData.lifeTime || (damagedItems[0]?.lifeTime) || calculateLifeTime(primaryTglSupply, formData.tglKerusakan);
+
+      const item = {
+        id: isEdit ? (formData.id || `bak-${timestamp}`) : `bak-${timestamp}`,
         noBa: formData.noBa,
-        noOsr: formData.noOsr || '',
-        jenisTools: di.jenisTools || 'Common Tools',
+        noOsr: '',
+        jenisTools: primaryJenisTools,
         jobsite: finalJobsite,
-        noRegister: di.noRegister || '',
-        namaAsset: di.namaAsset || '',
-        namaAlat: di.namaAsset || '',
-        brand: di.brand || '',
-        tglSupply: di.tglSupply || '',
-        tglKerusakan: formData.tglKerusakan || formData.tglKejadian,
-        tglKejadian: formData.tglKerusakan || formData.tglKejadian,
-        lifeTime: di.lifeTime || calculateLifeTime(di.tglSupply, formData.tglKerusakan),
-        action: formData.action || formData.tindakanKorektif || 'Repair di Site',
-        tindakanKorektif: formData.action || formData.tindakanKorektif || 'Repair di Site',
+        noRegister: primaryNoReg,
+        namaAsset: primaryNamaAsset,
+        namaAlat: primaryNamaAsset,
+        brand: primaryBrand,
+        tglSupply: primaryTglSupply,
+        tglKerusakan: formData.tglKerusakan || formData.tglKejadian || new Date().toISOString().split('T')[0],
+        tglKejadian: formData.tglKerusakan || formData.tglKejadian || new Date().toISOString().split('T')[0],
+        lifeTime: primaryLifeTime,
+        action: formData.action || formData.tindakanKorektif || 'Pergantian Baru',
+        tindakanKorektif: formData.action || formData.tindakanKorektif || 'Pergantian Baru',
         status: formData.status || 'Investigasi',
         fotoKerusakan: fotoKerusakan || formData.fotoKerusakan || '',
         dokumentasi: fotoKerusakan || formData.dokumentasi || '',
+        kronologi: formData.kronologi || formData.kronologiKerusakan || '',
+        kronologiKerusakan: formData.kronologi || formData.kronologiKerusakan || '',
         fileData: fotoKerusakan
           ? {
               base64: fotoKerusakan,
@@ -523,9 +550,9 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
               mimeType: 'image/jpeg'
             }
           : undefined
-      }));
+      };
 
-      onSave(module, items, isEdit);
+      onSave(module, [item], isEdit);
       onClose();
       return;
     }
@@ -569,6 +596,9 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
       const finalData = {
         ...formData,
         jobsite: finalJobsite,
+        vendor: formData.vendor || '',
+        amount: formData.amount || '0',
+        status: formData.status || 'Sedang Dikerjakan',
         dokumentasi: fotoOsr || formData.dokumentasi || '',
         fotoKerusakan: fotoOsr || formData.fotoKerusakan || '',
         fileData: fotoOsr
@@ -626,7 +656,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
         className="hidden"
       />
 
-      <div className="relative w-full max-w-3xl bg-slate-900 border border-[#0B4D3B] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-3xl bg-white border border-[#0B4D3B]/20 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-6 py-4 bg-[#063D2E] border-b border-[#0B4D3B] flex items-center justify-between shrink-0">
           <div>
@@ -634,30 +664,30 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
               <span>{isEdit ? 'Edit Data' : 'Tambah Data Baru'}:</span>
               <span className="text-emerald-300">{getModuleTitle()}</span>
             </h3>
-            <p className="text-xs text-emerald-200/70">
+            <p className="text-xs text-emerald-200/80">
               {isEdit ? 'Perbarui informasi data yang tersimpan' : 'Input data baru dan otomatis sinkronkan ke Google Spreadsheet'}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-emerald-200/70 hover:text-white rounded-lg hover:bg-[#0a4837] transition"
+            className="p-1.5 text-emerald-200/80 hover:text-white rounded-lg hover:bg-[#0a4837] transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 pb-28 overflow-y-auto space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 pb-28 overflow-y-auto space-y-4 bg-white text-slate-800">
           {/* Jobsite Selector (HO only can change) */}
           {isHO ? (
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mb-2">
-              <label className="block text-xs font-bold text-emerald-400 mb-1">
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 mb-2">
+              <label className="block text-xs font-bold text-emerald-900 mb-1">
                 Pilih Jobsite / Lokasi Proyek (Kolom Jobsite)
               </label>
               <select
                 value={formData.jobsite || ALL_JOBSITES[0]}
                 onChange={(e) => handleChange('jobsite', e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-emerald-500/40 rounded-xl text-xs text-white font-semibold"
+                className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
               >
                 {ALL_JOBSITES.map((site) => (
                   <option key={site} value={site}>
@@ -667,9 +697,9 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
               </select>
             </div>
           ) : (
-            <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-950/60 rounded-xl border border-slate-800 mb-2">
-              <span className="text-xs text-slate-400 font-medium">Jobsite Terkunci:</span>
-              <span className="text-xs font-bold text-emerald-400 font-mono">{currentUser.jobsite}</span>
+            <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-50 rounded-xl border border-slate-200 mb-2">
+              <span className="text-xs text-slate-600 font-medium">Jobsite Terkunci:</span>
+              <span className="text-xs font-bold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded border border-emerald-200 font-mono">{currentUser.jobsite}</span>
             </div>
           )}
 
@@ -680,40 +710,40 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     No Registrasi (Kolom A)
                   </label>
                   <input
                     type="text"
                     value={formData.noRegistrasi || ''}
                     onChange={(e) => handleChange('noRegistrasi', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Kategori (Kolom C)
                   </label>
                   <input
                     type="text"
                     value={formData.kategori || 'Common Tools'}
                     onChange={(e) => handleChange('kategori', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                     placeholder="Common Tools / Special Tools"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Nama Asset (Kolom B)
                 </label>
                 <input
                   type="text"
                   value={formData.namaAsset || ''}
                   onChange={(e) => handleChange('namaAsset', e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                   placeholder="Contoh: Impact Wrench 1 Inch Heavy Duty"
                   required
                 />
@@ -721,29 +751,29 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Merk / Brand (Kolom D)
                   </label>
                   <input
                     type="text"
                     value={formData.merkBrand || ''}
                     onChange={(e) => handleChange('merkBrand', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     No PO (Kolom E)
                   </label>
                   <input
                     type="text"
                     value={formData.noPo || ''}
                     onChange={(e) => handleChange('noPo', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Tgl Supply (Kolom F)
                   </label>
                   <DateInput
@@ -756,25 +786,25 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Lokasi Penempatan (Kolom G)
                   </label>
                   <input
                     type="text"
                     value={formData.lokasiPenempatan || ''}
                     onChange={(e) => handleChange('lokasiPenempatan', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                     placeholder="Tool Room / Bay WS / Pit Stop"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Kondisi Awal (Kolom I)
                   </label>
                   <select
                     value={formData.kondisiAwal || 'Baik (Ready for Operation)'}
                     onChange={(e) => handleChange('kondisiAwal', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs cursor-pointer"
                   >
                     <option value="Baik (Ready for Operation)">Baik (Ready for Operation)</option>
                     <option value="Rusak Ringan (Minor Defect)">Rusak Ringan (Minor Defect)</option>
@@ -794,40 +824,40 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     No Toolbox (Kolom A)
                   </label>
                   <input
                     type="text"
                     value={formData.noToolbox || ''}
                     onChange={(e) => handleChange('noToolbox', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Kategori (Kolom C)
                   </label>
                   <input
                     type="text"
                     value={formData.jenisToolbox || 'Common Tools'}
                     onChange={(e) => handleChange('jenisToolbox', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                     placeholder="Common Tools"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Nama Toolbox (Kolom B)
                 </label>
                 <input
                   type="text"
                   value={formData.namaToolbox || ''}
                   onChange={(e) => handleChange('namaToolbox', e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                   placeholder="Contoh: Toolbox Heavy Duty Mechanic 01"
                   required
                 />
@@ -835,30 +865,30 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Merk / Brand (Kolom D)
                   </label>
                   <input
                     type="text"
                     value={formData.merkBrand || ''}
                     onChange={(e) => handleChange('merkBrand', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     No PO (Kolom E)
                   </label>
                   <input
                     type="text"
                     value={formData.jumlahItem || 'PO'}
                     onChange={(e) => handleChange('jumlahItem', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                     placeholder="PO"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Tgl Supply (Kolom F)
                   </label>
                   <DateInput
@@ -871,50 +901,50 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Kondisi (Kolom I)
                   </label>
                   <input
                     type="text"
                     value={formData.kondisi || 'Lengkap & Baik'}
                     onChange={(e) => handleChange('kondisi', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Lokasi Penempatan (Kolom G)
                   </label>
                   <input
                     type="text"
                     value={formData.lokasiPenempatan || ''}
                     onChange={(e) => handleChange('lokasiPenempatan', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     PIC / Penanggung Jawab (Kolom J)
                   </label>
                   <input
                     type="text"
                     value={formData.pic || ''}
                     onChange={(e) => handleChange('pic', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                     placeholder="Contoh: Ucupxyz"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Keterangan (Kolom K)
                 </label>
                 <input
                   type="text"
                   value={formData.keterangan || ''}
                   onChange={(e) => handleChange('keterangan', e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                   placeholder="Keterangan tambahan..."
                 />
               </div>
@@ -931,9 +961,9 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
                     <span>ID Peminjaman Awal (Kolom A)</span>
-                    <span className="text-[10px] text-amber-400 font-mono">Format: LOAN-{getJobsiteShortCode(activeJobsite)}-XXXX</span>
+                    <span className="text-[10px] text-emerald-700 font-mono">Format: LOAN-{getJobsiteShortCode(activeJobsite)}-XXXX</span>
                   </label>
                   <input
                     type="text"
@@ -942,18 +972,18 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                       handleChange('idPeminjaman', e.target.value);
                       handleChange('noPeminjaman', e.target.value);
                     }}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white font-mono"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Status (Kolom K)
                   </label>
                   <select
                     value={formData.status || 'Dipinjam'}
                     onChange={(e) => handleChange('status', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs cursor-pointer"
                   >
                     <option value="Dipinjam">Dipinjam</option>
                     <option value="Kembali">Kembali</option>
@@ -964,34 +994,34 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Peminjam (Kolom F)
                   </label>
                   <input
                     type="text"
                     value={formData.peminjam || ''}
                     onChange={(e) => handleChange('peminjam', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                     placeholder="Nama Lengkap Peminjam"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Section / Departemen (Kolom G)
                   </label>
                   <input
                     type="text"
                     value={formData.section || 'Plant Maintenance'}
                     onChange={(e) => handleChange('section', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Tgl Pinjam (Kolom H)
                   </label>
                   <DateInput
@@ -1002,7 +1032,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Estimasi Kembali (Kolom I)
                   </label>
                   <DateInput
@@ -1017,9 +1047,9 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
               {/* Kolom J & Kolom M Realisasi Pengembalian */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
                     <span>Tgl Realisasi Kembali (Kolom J)</span>
-                    <span className="text-[10px] text-emerald-400 font-mono">Bisa manual/kalender</span>
+                    <span className="text-[10px] text-emerald-700 font-mono">Bisa manual/kalender</span>
                   </label>
                   <DateInput
                     value={formData.tglRealisasiKembali || ''}
@@ -1028,9 +1058,9 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
                     <span>Kondisi Akhir (Kolom M)</span>
-                    <span className="text-[10px] text-emerald-400">Pilihan Wajib</span>
+                    <span className="text-[10px] text-emerald-700 font-semibold">Pilihan Wajib</span>
                   </label>
                   <select
                     value={formData.kondisiAkhir || ''}
@@ -1040,22 +1070,22 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                         handleChange('status', 'Kembali');
                       }
                     }}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs cursor-pointer"
                   >
                     <option value="">-- Belum Dikembalikan --</option>
                     <option value="Baik (Ready for Operation)">Baik (Ready for Operation)</option>
                     <option value="Rusak Ringan (Minor Defect)">Rusak Ringan (Minor Defect)</option>
-                    <option value="Rusak Berat(Non-Operational)">Rusak Berat(Non-Operational)</option>
+                    <option value="Rusak Berat (Non-Operational)">Rusak Berat (Non-Operational)</option>
                   </select>
                 </div>
               </div>
 
               {/* Peringatan otomatis jika kondisi akhir rusak */}
               {formData.kondisiAkhir && (formData.kondisiAkhir.includes('Rusak') || formData.kondisiAkhir.includes('Defect') || formData.kondisiAkhir.includes('Non-Operational')) && (
-                <div className="p-3 rounded-xl bg-amber-950/60 border border-amber-500/50 flex items-start gap-2.5 text-xs text-amber-200 animate-in fade-in slide-in-from-top-1">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="p-3.5 rounded-xl bg-amber-50 border-2 border-amber-400 flex items-start gap-2.5 text-xs text-amber-950 animate-in fade-in slide-in-from-top-1 shadow-xs">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold text-amber-300 block">Peringatan Kondisi Akhir Rusak (Kolom M):</span>
+                    <span className="font-bold text-amber-900 block">Peringatan Kondisi Akhir Rusak (Kolom M):</span>
                     Alat dikembalikan dengan kondisi rusak ({formData.kondisiAkhir}). Pengguna disarankan untuk mempertimbangkan pembuatan <b>Berita Acara Kerusakan (BA Kerusakan)</b> di modul BA Kerusakan.
                   </div>
                 </div>
@@ -1063,15 +1093,15 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
               {/* Multi-Tool Loan Selection (Requirement 1) */}
               <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <span className="text-xs font-bold text-amber-400">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <span className="text-xs font-bold text-emerald-800">
                     Daftar Alat yang Dipinjam ({loanedItems.length} Alat Terpilih)
                   </span>
                   {!isEdit && (
                     <button
                       type="button"
                       onClick={() => setLoanedItems([...loanedItems, { kodeAlat: '', namaAsset: '', kategori: 'Common Tools', kondisiAwal: 'Baik (Ready for Operation)' }])}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold cursor-pointer"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold cursor-pointer border border-emerald-200"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Tambah Pilihan Alat</span>
@@ -1080,16 +1110,16 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                 </div>
 
                 {loanedItems.map((item, idx) => (
-                  <div key={idx} className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3">
+                  <div key={idx} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3 shadow-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-amber-300 font-mono">
+                      <span className="text-[11px] font-bold text-emerald-800 font-mono">
                         Alat #{idx + 1} &bull; ID: {getNextLoanIdWithOffset(activeJobsite, StorageService.getPeminjaman(), idx)}
                       </span>
                       {loanedItems.length > 1 && !isEdit && (
                         <button
                           type="button"
                           onClick={() => setLoanedItems(loanedItems.filter((_, i) => i !== idx))}
-                          className="text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
+                          className="text-rose-500 hover:text-rose-700 p-1 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1098,7 +1128,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
                     {/* Quick selector from Populasi Asset */}
                     <div>
-                      <label className="block text-[11px] text-amber-300 font-semibold mb-1">
+                      <label className="block text-[11px] text-slate-700 font-semibold mb-1">
                         Pilih dari Populasi Asset ({activeJobsite})
                       </label>
                       <select
@@ -1113,7 +1143,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                             setLoanedItems(copy);
                           }
                         }}
-                        className="w-full px-2.5 py-1.5 bg-slate-900 border border-amber-500/40 rounded-lg text-xs text-amber-200"
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         defaultValue=""
                       >
                         <option value="">-- Pilih Alat dari Populasi Asset --</option>
@@ -1127,7 +1157,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Kode Alat (Kolom B)</label>
+                        <label className="block text-[11px] text-slate-600 mb-1">Kode Alat (Kolom B)</label>
                         <input
                           type="text"
                           value={item.kodeAlat}
@@ -1136,13 +1166,13 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                             copy[idx].kodeAlat = e.target.value;
                             setLoanedItems(copy);
                           }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           placeholder="No Registrasi"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Nama Asset (Kolom C)</label>
+                        <label className="block text-[11px] text-slate-600 mb-1">Nama Asset (Kolom C)</label>
                         <input
                           type="text"
                           value={item.namaAsset}
@@ -1151,7 +1181,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                             copy[idx].namaAsset = e.target.value;
                             setLoanedItems(copy);
                           }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           placeholder="Nama Alat"
                           required
                         />
@@ -1160,7 +1190,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Kategori (Kolom D)</label>
+                        <label className="block text-[11px] text-slate-600 mb-1">Kategori (Kolom D)</label>
                         <input
                           type="text"
                           value={item.kategori}
@@ -1169,11 +1199,11 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                             copy[idx].kategori = e.target.value;
                             setLoanedItems(copy);
                           }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Kondisi Awal (Kolom L)</label>
+                        <label className="block text-[11px] text-slate-600 mb-1">Kondisi Awal (Kolom L)</label>
                         <input
                           type="text"
                           value={item.kondisiAwal}
@@ -1182,7 +1212,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                             copy[idx].kondisiAwal = e.target.value;
                             setLoanedItems(copy);
                           }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         />
                       </div>
                     </div>
@@ -1191,14 +1221,14 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Keperluan Pinjam (Kolom N)
                 </label>
                 <input
                   type="text"
                   value={formData.keperluan || ''}
                   onChange={(e) => handleChange('keperluan', e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                   placeholder="Untuk pekerjaan maintenance unit..."
                 />
               </div>
@@ -1212,8 +1242,9 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    No Pengadaan (Kolom A)
+                  <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>No Pengadaan (Kolom A)</span>
+                    <span className="text-[10px] text-emerald-700 font-mono">Format: …/PLANT/(SITE)/TOOLSREQ/(MM)/(YYYY)</span>
                   </label>
                   <input
                     type="text"
@@ -1222,12 +1253,40 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                       handleChange('noPengadaan', e.target.value);
                       handleChange('noPoPr', e.target.value);
                     }}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                    placeholder="001/PLANT/GAM/TOOLSREQ/10/2026"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    No UR (Kolom J)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.noUr || ''}
+                    onChange={(e) => handleChange('noUr', e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                    placeholder="Contoh: UR-1002"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    No CER (Kolom E)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.noCer || ''}
+                    onChange={(e) => handleChange('noCer', e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                    placeholder="CER-..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Tgl Pengadaan (Kolom I)
                   </label>
                   <DateInput
@@ -1239,23 +1298,8 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                     placeholder="YYYY-MM-DD / manual"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    No CER (Kolom E)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.noCer || ''}
-                    onChange={(e) => handleChange('noCer', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                    placeholder="CER-..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Tgl Supply (Kolom S)
                   </label>
                   <DateInput
@@ -1268,15 +1312,15 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
               {/* Dynamic Multiple Items List */}
               <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <span className="text-xs font-bold text-amber-400">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <span className="text-xs font-bold text-emerald-800">
                     Daftar Permintaan Item ({pengadaanItems.length} Item)
                   </span>
                   {!isEdit && (
                     <button
                       type="button"
                       onClick={() => setPengadaanItems([...pengadaanItems, { kategori: 'Common Tools', typeBarang: '', partNumber: '', namaAlat: '', qty: '1' }])}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold cursor-pointer"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold cursor-pointer border border-emerald-200"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Tambah Item Baru</span>
@@ -1285,16 +1329,16 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                 </div>
 
                 {pengadaanItems.map((item, idx) => (
-                  <div key={idx} className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3">
+                  <div key={idx} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3 shadow-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-400">
+                      <span className="text-[11px] font-bold text-slate-700 font-mono">
                         Item #{idx + 1}
                       </span>
                       {pengadaanItems.length > 1 && !isEdit && (
                         <button
                           type="button"
                           onClick={() => setPengadaanItems(pengadaanItems.filter((_, i) => i !== idx))}
-                          className="text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
+                          className="text-rose-500 hover:text-rose-700 p-1 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1303,7 +1347,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Nama Alat (Kolom G)</label>
+                        <label className="block text-[11px] text-slate-600 mb-1">Nama Alat (Kolom G)</label>
                         <input
                           type="text"
                           value={item.namaAlat}
@@ -1312,13 +1356,13 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                             copy[idx].namaAlat = e.target.value;
                             setPengadaanItems(copy);
                           }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           placeholder="Nama alat yang diminta"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Part Number (Kolom F)</label>
+                        <label className="block text-[11px] text-slate-600 mb-1">Part Number (Kolom F)</label>
                         <input
                           type="text"
                           value={item.partNumber}
@@ -1327,7 +1371,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                             copy[idx].partNumber = e.target.value;
                             setPengadaanItems(copy);
                           }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           placeholder="Part Number"
                         />
                       </div>
@@ -1335,7 +1379,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Kategori (Kolom C)</label>
+                        <label className="block text-[11px] text-slate-600 mb-1">Kategori (Kolom C)</label>
                         <input
                           type="text"
                           value={item.kategori}
@@ -1344,25 +1388,26 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                             copy[idx].kategori = e.target.value;
                             setPengadaanItems(copy);
                           }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Type (Kolom D)</label>
-                        <input
-                          type="text"
-                          value={item.typeBarang}
+                        <label className="block text-[11px] text-slate-600 mb-1">Type (Kolom D)</label>
+                        <select
+                          value={item.typeBarang || 'Pengadaan Baru'}
                           onChange={(e) => {
                             const copy = [...pengadaanItems];
                             copy[idx].typeBarang = e.target.value;
                             setPengadaanItems(copy);
                           }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
-                          placeholder="Tipe spesifikasi"
-                        />
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                        >
+                          <option value="Pengadaan Baru">Pengadaan Baru</option>
+                          <option value="Pergantian Tools Rusak">Pergantian Tools Rusak</option>
+                        </select>
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Qty (Kolom H)</label>
+                        <label className="block text-[11px] text-slate-600 mb-1">Qty (Kolom H)</label>
                         <input
                           type="text"
                           value={item.qty}
@@ -1371,7 +1416,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                             copy[idx].qty = e.target.value;
                             setPengadaanItems(copy);
                           }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           placeholder="Contoh: 2 Unit"
                           required
                         />
@@ -1382,26 +1427,26 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
               </div>
 
               {/* Lampiran Dokumen Pengadaan (Kolom V) with Dual Camera / File Upload */}
-              <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
-                <label className="block text-xs font-bold text-slate-300 flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 shadow-xs">
+                <label className="block text-xs font-bold text-slate-700 flex items-center justify-between">
                   <span>Lampiran Dokumen Pengadaan (Kolom V)</span>
-                  <span className="text-[10px] text-amber-400 font-mono">Tersimpan ke GDrive Pengadaan</span>
+                  <span className="text-[10px] text-emerald-700 font-mono">Tersimpan ke GDrive Pengadaan</span>
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => handleTriggerUpload('pengadaan', true)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 cursor-pointer border border-slate-700"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer border border-slate-300 shadow-xs"
                   >
-                    <Camera className="w-3.5 h-3.5 text-amber-400" />
+                    <Camera className="w-3.5 h-3.5 text-emerald-700" />
                     <span>Ambil Foto (Kamera)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleTriggerUpload('pengadaan', false)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 cursor-pointer border border-slate-700"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer border border-slate-300 shadow-xs"
                   >
-                    <Upload className="w-3.5 h-3.5 text-amber-400" />
+                    <Upload className="w-3.5 h-3.5 text-emerald-700" />
                     <span>Pilih File / Dokumen</span>
                   </button>
                   {dokumenPengadaan && (
@@ -1411,14 +1456,14 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                         setDokumenPengadaan('');
                         setDokumenPengadaanName('');
                       }}
-                      className="text-xs text-rose-400 hover:text-rose-300 cursor-pointer px-2"
+                      className="text-xs text-rose-600 hover:text-rose-800 cursor-pointer px-2"
                     >
                       Hapus
                     </button>
                   )}
                 </div>
                 {dokumenPengadaanName && (
-                  <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium">
+                  <div className="flex items-center gap-2 text-xs text-emerald-700 font-medium">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>File siap diunggah: {dokumenPengadaanName}</span>
                   </div>
@@ -1434,34 +1479,21 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    No Berita Acara (Kolom A)
+                  <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>No Berita Acara (Kolom A)</span>
+                    <span className="text-[10px] text-emerald-700 font-mono">Format: …/BAK-TOOL/(SITE)/(MM)/(YYYY)</span>
                   </label>
                   <input
                     type="text"
                     value={formData.noBa || ''}
                     onChange={(e) => handleChange('noBa', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white font-mono"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                    placeholder="001/BAK-TOOL/GAM/10/2026"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    No OSR (Kolom B)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.noOsr || ''}
-                    onChange={(e) => handleChange('noOsr', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                    placeholder="No OSR jika ada"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Tgl Kerusakan (Kolom I)
                   </label>
                   <DateInput
@@ -1469,208 +1501,208 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                     onChange={(val) => {
                       handleChange('tglKerusakan', val);
                       handleChange('tglKejadian', val);
+                      if (formData.tglSupply) {
+                        handleChange('lifeTime', calculateLifeTime(formData.tglSupply, val));
+                      }
+                    }}
+                    placeholder="YYYY-MM-DD / manual"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Action (Kolom K)</span>
+                  <span className="text-[10px] text-emerald-700 font-semibold">Dropdown Pilihan Wajib</span>
+                </label>
+                <select
+                  value={formData.action || 'Pergantian Baru'}
+                  onChange={(e) => {
+                    handleChange('action', e.target.value);
+                    handleChange('tindakanKorektif', e.target.value);
+                  }}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs cursor-pointer"
+                >
+                  <option value="Pergantian Baru">Pergantian Baru</option>
+                  <option value="Out Site Repair">Out Site Repair</option>
+                  <option value="In Site Repair">In Site Repair</option>
+                </select>
+              </div>
+
+              {/* Selector Alat dari Populasi Asset */}
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
+                <label className="block text-xs font-bold text-amber-900 mb-1">
+                  Pilih Alat dari Populasi Asset ({activeJobsite})
+                </label>
+                <select
+                  onChange={(e) => {
+                    const sel = siteAssets.find(a => a.noRegistrasi === e.target.value);
+                    if (sel) {
+                      handleChange('noRegister', sel.noRegistrasi);
+                      handleChange('namaAsset', sel.namaAsset);
+                      handleChange('namaAlat', sel.namaAsset);
+                      handleChange('brand', sel.merkBrand || '');
+                      handleChange('tglSupply', sel.tglSupply || '');
+                      handleChange('jenisTools', sel.kategori || 'Common Tools');
+                      handleChange('lifeTime', calculateLifeTime(sel.tglSupply, formData.tglKerusakan || new Date().toISOString()));
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs cursor-pointer"
+                  defaultValue=""
+                >
+                  <option value="">-- Pilih Alat dari Populasi Asset --</option>
+                  {siteAssets.map((asset) => (
+                    <option key={asset.id || asset.noRegistrasi} value={asset.noRegistrasi}>
+                      [{asset.noRegistrasi}] {asset.namaAsset} - {asset.merkBrand}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    No Register (Kolom E)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.noRegister || (damagedItems[0]?.noRegister) || ''}
+                    onChange={(e) => {
+                      handleChange('noRegister', e.target.value);
+                      if (damagedItems[0]) {
+                        const copy = [...damagedItems];
+                        copy[0].noRegister = e.target.value;
+                        setDamagedItems(copy);
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                    placeholder="No Registrasi Asset"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Nama Asset (Kolom F)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.namaAsset || formData.namaAlat || (damagedItems[0]?.namaAsset) || ''}
+                    onChange={(e) => {
+                      handleChange('namaAsset', e.target.value);
+                      handleChange('namaAlat', e.target.value);
+                      if (damagedItems[0]) {
+                        const copy = [...damagedItems];
+                        copy[0].namaAsset = e.target.value;
+                        setDamagedItems(copy);
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                    placeholder="Nama Asset / Alat"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Brand (Kolom G)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.brand || (damagedItems[0]?.brand) || ''}
+                    onChange={(e) => {
+                      handleChange('brand', e.target.value);
+                      if (damagedItems[0]) {
+                        const copy = [...damagedItems];
+                        copy[0].brand = e.target.value;
+                        setDamagedItems(copy);
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                    placeholder="Merk / Brand"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Tgl Supply (Kolom H)
+                  </label>
+                  <DateInput
+                    value={formData.tglSupply || (damagedItems[0]?.tglSupply) || ''}
+                    onChange={(val) => {
+                      handleChange('tglSupply', val);
+                      handleChange('lifeTime', calculateLifeTime(val, formData.tglKerusakan || new Date().toISOString()));
+                      if (damagedItems[0]) {
+                        const copy = [...damagedItems];
+                        copy[0].tglSupply = val;
+                        copy[0].lifeTime = calculateLifeTime(val, formData.tglKerusakan || new Date().toISOString());
+                        setDamagedItems(copy);
+                      }
                     }}
                     placeholder="YYYY-MM-DD / manual"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Action (Kolom K)
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Life Time (Kolom J)
                   </label>
                   <input
                     type="text"
-                    value={formData.action || formData.tindakanKorektif || 'Repair di Site'}
+                    value={formData.lifeTime || (damagedItems[0]?.lifeTime) || ''}
                     onChange={(e) => {
-                      handleChange('action', e.target.value);
-                      handleChange('tindakanKorektif', e.target.value);
+                      handleChange('lifeTime', e.target.value);
+                      if (damagedItems[0]) {
+                        const copy = [...damagedItems];
+                        copy[0].lifeTime = e.target.value;
+                        setDamagedItems(copy);
+                      }
                     }}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                    placeholder="Repair site / OSR / Scrap"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                    placeholder="Otomatis dihitung"
                   />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Status (Kolom L)
-                  </label>
-                  <select
-                    value={formData.status || 'Investigasi'}
-                    onChange={(e) => handleChange('status', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                  >
-                    <option value="Investigasi">Investigasi</option>
-                    <option value="Review HO">Review HO</option>
-                    <option value="Disetujui">Disetujui</option>
-                    <option value="Selesai">Selesai</option>
-                  </select>
                 </div>
               </div>
 
-              {/* Damaged Tools List (Multi-item support) */}
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <span className="text-xs font-bold text-amber-400">
-                    Daftar Alat Rusak ({damagedItems.length} Alat)
-                  </span>
-                  {!isEdit && (
-                    <button
-                      type="button"
-                      onClick={() => setDamagedItems([...damagedItems, { noRegister: '', namaAsset: '', brand: '', tglSupply: '', jenisTools: 'Common Tools', lifeTime: '' }])}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Tambah Alat Rusak</span>
-                    </button>
-                  )}
-                </div>
-
-                {damagedItems.map((item, idx) => (
-                  <div key={idx} className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-400">
-                        Alat Rusak #{idx + 1}
-                      </span>
-                      {damagedItems.length > 1 && !isEdit && (
-                        <button
-                          type="button"
-                          onClick={() => setDamagedItems(damagedItems.filter((_, i) => i !== idx))}
-                          className="text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Dropdown selector from Populasi Asset */}
-                    <div>
-                      <label className="block text-[11px] text-amber-300 mb-1 font-semibold">
-                        Pilih dari Populasi Asset ({activeJobsite})
-                      </label>
-                      <select
-                        onChange={(e) => {
-                          const sel = siteAssets.find(a => a.noRegistrasi === e.target.value);
-                          if (sel) {
-                            const copy = [...damagedItems];
-                            copy[idx].noRegister = sel.noRegistrasi;
-                            copy[idx].namaAsset = sel.namaAsset;
-                            copy[idx].brand = sel.merkBrand || '';
-                            copy[idx].tglSupply = sel.tglSupply || '';
-                            copy[idx].jenisTools = sel.kategori || 'Common Tools';
-                            copy[idx].lifeTime = calculateLifeTime(sel.tglSupply, formData.tglKerusakan || new Date().toISOString());
-                            setDamagedItems(copy);
-                          }
-                        }}
-                        className="w-full px-2.5 py-1.5 bg-slate-900 border border-amber-500/40 rounded-lg text-xs text-amber-200"
-                        defaultValue=""
-                      >
-                        <option value="">-- Pilih Alat dari Populasi Asset --</option>
-                        {siteAssets.map((asset) => (
-                          <option key={asset.id || asset.noRegistrasi} value={asset.noRegistrasi}>
-                            [{asset.noRegistrasi}] {asset.namaAsset} - {asset.merkBrand}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">No Register (Kolom E)</label>
-                        <input
-                          type="text"
-                          value={item.noRegister}
-                          onChange={(e) => {
-                            const copy = [...damagedItems];
-                            copy[idx].noRegister = e.target.value;
-                            setDamagedItems(copy);
-                          }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
-                          placeholder="No Registrasi"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Nama Asset (Kolom F)</label>
-                        <input
-                          type="text"
-                          value={item.namaAsset}
-                          onChange={(e) => {
-                            const copy = [...damagedItems];
-                            copy[idx].namaAsset = e.target.value;
-                            setDamagedItems(copy);
-                          }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
-                          placeholder="Nama Asset"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Brand (Kolom G)</label>
-                        <input
-                          type="text"
-                          value={item.brand}
-                          onChange={(e) => {
-                            const copy = [...damagedItems];
-                            copy[idx].brand = e.target.value;
-                            setDamagedItems(copy);
-                          }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Tgl Supply (Kolom H)</label>
-                        <DateInput
-                          value={item.tglSupply}
-                          onChange={(val) => {
-                            const copy = [...damagedItems];
-                            copy[idx].tglSupply = val;
-                            copy[idx].lifeTime = calculateLifeTime(val, formData.tglKerusakan || new Date().toISOString());
-                            setDamagedItems(copy);
-                          }}
-                          placeholder="YYYY-MM-DD / manual"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Life Time (Kolom J)</label>
-                        <input
-                          type="text"
-                          value={item.lifeTime}
-                          onChange={(e) => {
-                            const copy = [...damagedItems];
-                            copy[idx].lifeTime = e.target.value;
-                            setDamagedItems(copy);
-                          }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
-                          placeholder="Otomatis dihitung"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Kronologi & Sebab Kerusakan (Kolom N)</span>
+                  <span className="text-[10px] text-amber-700 font-medium">Penjelasan Lengkap Kerusakan Alat / Facility</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.kronologi || formData.kronologiKerusakan || ''}
+                  onChange={(e) => {
+                    handleChange('kronologi', e.target.value);
+                    handleChange('kronologiKerusakan', e.target.value);
+                  }}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                  placeholder="Jelaskan secara mendalam kronologi kejadian, indikasi penyebab kerusakan, serta dampaknya terhadap unit operasional..."
+                  required
+                />
               </div>
 
               {/* Lampiran Foto Alat Rusak (Kolom M) with Dual Camera / File Upload */}
-              <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
-                <label className="block text-xs font-bold text-slate-300 flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 shadow-xs">
+                <label className="block text-xs font-bold text-slate-700 flex items-center justify-between">
                   <span>Lampiran Foto Alat Rusak (Kolom M)</span>
-                  <span className="text-[10px] text-amber-400 font-mono">Tersimpan ke GDrive BA Kerusakan</span>
+                  <span className="text-[10px] text-emerald-700 font-mono">Tersimpan ke GDrive BA Kerusakan</span>
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => handleTriggerUpload('kerusakan', true)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 cursor-pointer border border-slate-700"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer border border-slate-300 shadow-xs"
                   >
-                    <Camera className="w-3.5 h-3.5 text-amber-400" />
+                    <Camera className="w-3.5 h-3.5 text-emerald-700" />
                     <span>Ambil Foto (Kamera)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleTriggerUpload('kerusakan', false)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 cursor-pointer border border-slate-700"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer border border-slate-300 shadow-xs"
                   >
-                    <Upload className="w-3.5 h-3.5 text-amber-400" />
+                    <Upload className="w-3.5 h-3.5 text-emerald-700" />
                     <span>Pilih File Gambar</span>
                   </button>
                   {fotoKerusakan && (
@@ -1680,7 +1712,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                         setFotoKerusakan('');
                         setFotoKerusakanName('');
                       }}
-                      className="text-xs text-rose-400 hover:text-rose-300 cursor-pointer px-2"
+                      className="text-xs text-rose-600 hover:text-rose-800 cursor-pointer px-2"
                     >
                       Hapus Foto
                     </button>
@@ -1691,9 +1723,9 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                     <img
                       src={fotoKerusakan}
                       alt="Preview Kerusakan"
-                      className="w-16 h-16 object-cover rounded-lg border border-slate-700"
+                      className="w-16 h-16 object-cover rounded-lg border border-slate-300 shadow-xs"
                     />
-                    <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+                    <span className="text-xs text-emerald-700 font-medium flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       Foto siap dilampirkan: {fotoKerusakanName || 'foto-kerusakan.jpg'}
                     </span>
@@ -1711,19 +1743,19 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     No OSR (Kolom A)
                   </label>
                   <input
                     type="text"
                     value={formData.noOsr || ''}
                     onChange={(e) => handleChange('noOsr', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white font-mono"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Date OSR (Kolom C)
                   </label>
                   <DateInput
@@ -1738,8 +1770,8 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
               </div>
 
               {/* Selector from Populasi Asset */}
-              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                <label className="block text-xs font-bold text-amber-300 mb-1">
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
+                <label className="block text-xs font-bold text-amber-900 mb-1">
                   Pilih Alat dari Populasi Asset ({activeJobsite})
                 </label>
                 <select
@@ -1752,7 +1784,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                       if (sel.tglSupply) handleChange('tglSupply', sel.tglSupply);
                     }
                   }}
-                  className="w-full px-3 py-2 bg-slate-950 border border-amber-500/40 rounded-xl text-xs text-amber-200"
+                  className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs cursor-pointer"
                   defaultValue=""
                 >
                   <option value="">-- Pilih Alat dari Populasi Asset --</option>
@@ -1766,19 +1798,19 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     No Registrasi (Kolom D)
                   </label>
                   <input
                     type="text"
                     value={formData.noRegistrasi || ''}
                     onChange={(e) => handleChange('noRegistrasi', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Nama Asset (Kolom E)
                   </label>
                   <input
@@ -1788,83 +1820,47 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                       handleChange('namaAsset', e.target.value);
                       handleChange('namaTool', e.target.value);
                     }}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Keterangan Kerusakan (Kolom F)
                 </label>
                 <textarea
                   value={formData.keteranganKerusakan || ''}
                   onChange={(e) => handleChange('keteranganKerusakan', e.target.value)}
                   rows={2}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                   placeholder="Detail kendala / kerusakan alat..."
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Vendor (Kolom I)</label>
-                  <input
-                    type="text"
-                    value={formData.vendor || ''}
-                    onChange={(e) => handleChange('vendor', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                    placeholder="Workshop Balikpapan"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Amount IDR (Kolom J)</label>
-                  <input
-                    type="text"
-                    value={formData.amount || ''}
-                    onChange={(e) => handleChange('amount', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Status (Kolom N)</label>
-                  <select
-                    value={formData.status || 'Sedang Dikerjakan'}
-                    onChange={(e) => handleChange('status', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
-                  >
-                    <option value="Sedang Dikerjakan">Sedang Dikerjakan</option>
-                    <option value="Testing">Testing</option>
-                    <option value="Siap Kirim Balik">Siap Kirim Balik</option>
-                    <option value="Selesai Diterima">Selesai Diterima</option>
-                  </select>
-                </div>
-              </div>
-
               {/* Lampiran Foto Alat Rusak OSR (Kolom O) - Requirement 7 & 8 */}
-              <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
-                <label className="block text-xs font-bold text-slate-300 flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 shadow-xs">
+                <label className="block text-xs font-bold text-slate-700 flex items-center justify-between">
                   <span>Lampiran Foto/Gambar Alat Rusak OSR (Kolom O)</span>
-                  <span className="text-[10px] text-amber-400 font-mono">Folder GDrive: 117QSUo3_wux9S4_2GvX528Fi6HqLTtjV</span>
+                  <span className="text-[10px] text-emerald-700 font-mono">Folder GDrive: 117QSUo3_wux9S4_2GvX528Fi6HqLTtjV</span>
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => handleTriggerUpload('osr', true)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 cursor-pointer border border-slate-700"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer border border-slate-300 shadow-xs"
                   >
-                    <Camera className="w-3.5 h-3.5 text-amber-400" />
+                    <Camera className="w-3.5 h-3.5 text-emerald-700" />
                     <span>Ambil Foto (Kamera)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleTriggerUpload('osr', false)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 cursor-pointer border border-slate-700"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer border border-slate-300 shadow-xs"
                   >
-                    <Upload className="w-3.5 h-3.5 text-amber-400" />
+                    <Upload className="w-3.5 h-3.5 text-emerald-700" />
                     <span>Pilih File Gambar</span>
                   </button>
                   {fotoOsr && (
@@ -1874,7 +1870,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                         setFotoOsr('');
                         setFotoOsrName('');
                       }}
-                      className="text-xs text-rose-400 hover:text-rose-300 cursor-pointer px-2"
+                      className="text-xs text-rose-600 hover:text-rose-800 cursor-pointer px-2"
                     >
                       Hapus Foto
                     </button>
@@ -1885,9 +1881,9 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                     <img
                       src={fotoOsr}
                       alt="Preview OSR"
-                      className="w-16 h-16 object-cover rounded-lg border border-slate-700"
+                      className="w-16 h-16 object-cover rounded-lg border border-slate-300 shadow-xs"
                     />
-                    <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+                    <span className="text-xs text-emerald-700 font-medium flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       Foto OSR siap diunggah: {fotoOsrName || 'foto-osr.jpg'}
                     </span>
@@ -1906,19 +1902,19 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     No Bast (Kolom A)
                   </label>
                   <input
                     type="text"
                     value={formData.noBast || ''}
                     onChange={(e) => handleChange('noBast', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white font-mono"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Date (Kolom C)
                   </label>
                   <DateInput
@@ -1934,7 +1930,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Penerima di Jobsite (Kolom H)
                   </label>
                   <input
@@ -1944,19 +1940,19 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                       handleChange('penerima', e.target.value);
                       handleChange('pihakKedua', e.target.value);
                     }}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                     placeholder="Nama Lengkap Penerima"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Status (Kolom I)
                   </label>
                   <select
                     value={formData.status || 'Draft'}
                     onChange={(e) => handleChange('status', e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs cursor-pointer"
                   >
                     <option value="Draft">Draft</option>
                     <option value="Ditandatangani">Ditandatangani</option>
@@ -1967,15 +1963,15 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
               {/* Multi-Asset Selector for BAST (Requirement 4) */}
               <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <span className="text-xs font-bold text-amber-400">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <span className="text-xs font-bold text-emerald-800">
                     Daftar Asset yang Diserahterimakan ({bastAssets.length} Asset)
                   </span>
                   {!isEdit && (
                     <button
                       type="button"
                       onClick={() => setBastAssets([...bastAssets, { noRegister: '', namaAsset: '', po: '', remarks: '' }])}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold cursor-pointer"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold cursor-pointer border border-emerald-200"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Tambah Asset</span>
@@ -1984,16 +1980,16 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                 </div>
 
                 {bastAssets.map((item, idx) => (
-                  <div key={idx} className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3">
+                  <div key={idx} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3 shadow-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-amber-300">
+                      <span className="text-[11px] font-bold text-slate-700 font-mono">
                         Asset #{idx + 1}
                       </span>
                       {bastAssets.length > 1 && !isEdit && (
                         <button
                           type="button"
                           onClick={() => setBastAssets(bastAssets.filter((_, i) => i !== idx))}
-                          className="text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
+                          className="text-rose-500 hover:text-rose-700 p-1 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -2002,7 +1998,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
                     {/* Quick selector from Populasi Asset */}
                     <div>
-                      <label className="block text-[11px] text-amber-300 font-semibold mb-1">
+                      <label className="block text-[11px] text-slate-700 font-semibold mb-1">
                         Pilih dari Populasi Asset ({activeJobsite})
                       </label>
                       <select
@@ -2016,7 +2012,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                             setBastAssets(copy);
                           }
                         }}
-                        className="w-full px-2.5 py-1.5 bg-slate-900 border border-amber-500/40 rounded-lg text-xs text-amber-200"
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         defaultValue=""
                       >
                         <option value="">-- Pilih Alat dari Populasi Asset --</option>
@@ -2030,7 +2026,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">No Register (Kolom G)</label>
+                        <label className="block text-[11px] text-slate-600 mb-1">No Register (Kolom G)</label>
                         <input
                           type="text"
                           value={item.noRegister}
@@ -2039,13 +2035,13 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                             copy[idx].noRegister = e.target.value;
                             setBastAssets(copy);
                           }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           placeholder="No Registrasi Asset"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Nama Asset (Kolom D)</label>
+                        <label className="block text-[11px] text-slate-600 mb-1">Nama Asset (Kolom D)</label>
                         <input
                           type="text"
                           value={item.namaAsset}
@@ -2054,7 +2050,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                             copy[idx].namaAsset = e.target.value;
                             setBastAssets(copy);
                           }}
-                          className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           placeholder="Nama Asset"
                           required
                         />
@@ -2062,7 +2058,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">PO (Kolom E)</label>
+                      <label className="block text-[11px] text-slate-600 mb-1">PO (Kolom E)</label>
                       <input
                         type="text"
                         value={item.po}
@@ -2071,7 +2067,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                           copy[idx].po = e.target.value;
                           setBastAssets(copy);
                         }}
-                        className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white"
+                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         placeholder="No PO"
                       />
                     </div>
@@ -2080,7 +2076,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Remarks / Keterangan (Kolom F)
                 </label>
                 <textarea
@@ -2090,32 +2086,32 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                     handleChange('keterangan', e.target.value);
                   }}
                   rows={2}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
                   placeholder="Kondisi asset diserahterimakan..."
                 />
               </div>
 
               {/* Lampiran Dokumen BAST (Kolom J) with Dual Camera / File Upload */}
-              <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
-                <label className="block text-xs font-bold text-slate-300 flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 shadow-xs">
+                <label className="block text-xs font-bold text-slate-700 flex items-center justify-between">
                   <span>Lampiran Dokumen BAST (Kolom J)</span>
-                  <span className="text-[10px] text-emerald-400 font-mono">Tersimpan ke GDrive BAST</span>
+                  <span className="text-[10px] text-emerald-700 font-mono">Tersimpan ke GDrive BAST</span>
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => handleTriggerUpload('bast', true)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 cursor-pointer border border-slate-700"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer border border-slate-300 shadow-xs"
                   >
-                    <Camera className="w-3.5 h-3.5 text-emerald-400" />
+                    <Camera className="w-3.5 h-3.5 text-emerald-700" />
                     <span>Ambil Foto (Kamera)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleTriggerUpload('bast', false)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 cursor-pointer border border-slate-700"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer border border-slate-300 shadow-xs"
                   >
-                    <Upload className="w-3.5 h-3.5 text-emerald-400" />
+                    <Upload className="w-3.5 h-3.5 text-emerald-700" />
                     <span>Pilih File PDF / Scan</span>
                   </button>
                   {dokumenBast && (
@@ -2125,14 +2121,14 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                         setDokumenBast('');
                         setDokumenBastName('');
                       }}
-                      className="text-xs text-rose-400 hover:text-rose-300 cursor-pointer px-2"
+                      className="text-xs text-rose-600 hover:text-rose-800 cursor-pointer px-2"
                     >
                       Hapus
                     </button>
                   )}
                 </div>
                 {dokumenBastName && (
-                  <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium">
+                  <div className="flex items-center gap-2 text-xs text-emerald-700 font-medium">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>Dokumen siap diunggah: {dokumenBastName}</span>
                   </div>
@@ -2142,18 +2138,18 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
           )}
 
           {/* Form Actions Footer */}
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3 sticky bottom-0 bg-slate-900/90 backdrop-blur py-2">
+          <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3 sticky bottom-0 bg-white/95 backdrop-blur py-3 px-6 -mx-6 -mb-6 shadow-md z-10">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer"
+              className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer border border-slate-300 shadow-xs"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-lg shadow-emerald-950/40 cursor-pointer disabled:opacity-50"
+              className="px-6 py-2 text-xs font-bold rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white transition shadow-sm cursor-pointer disabled:opacity-50"
             >
               {isSubmitting ? 'Menyimpan...' : isEdit ? 'Simpan Perubahan' : 'Simpan Data'}
             </button>

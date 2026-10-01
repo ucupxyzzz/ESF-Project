@@ -118,7 +118,7 @@ export interface PengadaanItem {
 }
 
 // 5. BA Kerusakan Alat (Kolom D: Jobsite)
-// Spreadsheet: No Berita Acara (A) | No OSR (B) | Jenis Tools (C) | Jobsite (D) | No Register (E) | Nama Asset (F) | Brand (G) | Tgl Supply (H) | Tgl Kerusakan (I) | Life Time (J) | Action (K) | Status (L) | Dokumentasi (M)
+// Spreadsheet: No Berita Acara (A) | No OSR (B) | Jenis Tools (C) | Jobsite (D) | No Register (E) | Nama Asset (F) | Brand (G) | Tgl Supply (H) | Tgl Kerusakan (I) | Life Time (J) | Action (K) | Status (L) | Dokumentasi (M) | Kronologi (N)
 export interface BaKerusakanItem {
   id: string;
   noBa: string; // Kolom A
@@ -135,6 +135,7 @@ export interface BaKerusakanItem {
   status: string; // Kolom L
   fotoKerusakan?: string; // Lampiran foto kerusakan (Base64 atau URL)
   dokumentasi?: string; // Kolom M (Google Drive link / foto alat rusak)
+  kronologi?: string; // Kolom N (Kronologi & Penyebab Kerusakan)
   // Compatibility aliases
   tglKejadian?: string;
   namaAlat?: string;

@@ -828,6 +828,7 @@ export class StorageService {
           const action = String(r[10] || '').trim();
           const status = String(r[11] || 'Investigasi').trim();
           const dokumentasi = String(r[12] || '').trim(); // Kolom M (index 12)
+          const kronologi = String(r[13] || '').trim(); // Kolom N (index 13)
 
           return {
             id: `bak-live-${idx}-${noBa.replace(/[^a-zA-Z0-9]/g, '-')}`,
@@ -848,6 +849,8 @@ export class StorageService {
             status,
             fotoKerusakan: dokumentasi,
             dokumentasi,
+            kronologi,
+            kronologiKerusakan: kronologi,
             keterangan: action
           };
         }

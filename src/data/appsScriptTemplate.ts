@@ -400,7 +400,7 @@ function getDefaultHeader(key) {
     case 'PENGADAAN':
       return ["No Pengadaan", "Jobsite", "Kategori", "Type", "No CER", "Part Number", "Nama Alat", "Qty", "Tgl Pengadaan", "No UR", "No PR", "No PO", "Qty PR", "Qty PO", "Qty GR", "Vendor", "Total Price", "Aging Days", "Tgl Supply", "Remarks", "Status", "Dokumentasi"];
     case 'KERUSAKAN':
-      return ["No Berita Acara", "No OSR", "Jenis Tools", "Jobsite", "No Register", "Nama Asset", "Brand", "Tgl Supply", "Tgl Kerusakan", "Life Time", "Action", "Status", "Dokumentasi"];
+      return ["No Berita Acara", "No OSR", "Jenis Tools", "Jobsite", "No Register", "Nama Asset", "Brand", "Tgl Supply", "Tgl Kerusakan", "Life Time", "Action", "Status", "Dokumentasi", "Kronologi"];
     case 'OSR':
       return ["No OSR", "Jobsite", "Date OSR", "No Registrasi", "Nama Asset", "Keterangan Kerusakan", "PR", "PO", "Vendor", "Amount", "Condition", "Remarks", "Tgl Supply", "Status", "Dokumentasi"];
     case 'BAST':
@@ -502,7 +502,8 @@ function convertItemToRow(module, item) {
         item.lifeTime || '', // J
         item.action || item.tindakanKorektif || '', // K
         item.status || 'Investigasi', // L
-        item.dokumentasi || item.fotoKerusakan || '' // M
+        item.dokumentasi || item.fotoKerusakan || '', // M
+        item.kronologi || item.kronologiKerusakan || '' // N (Kolom N)
       ];
     case 'osr':
       return [

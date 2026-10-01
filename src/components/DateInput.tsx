@@ -297,14 +297,14 @@ export const DateInput: React.FC<DateInputProps> = ({
           width: `${popoverPos.width}px`,
           zIndex: 999999
         }}
-        className="bg-slate-900 border-2 border-[#0B4D3B] rounded-2xl shadow-2xl p-3.5 space-y-3 animate-in fade-in zoom-in-95 backdrop-blur-xl text-white select-none pointer-events-auto"
+        className="bg-white border-2 border-emerald-600 rounded-2xl shadow-2xl p-3.5 space-y-3 animate-in fade-in zoom-in-95 text-slate-800 select-none pointer-events-auto"
       >
         {/* Header Kalender: Navigasi Bulan & Tahun */}
-        <div className="flex items-center justify-between gap-1.5 pb-2 border-b border-slate-800">
+        <div className="flex items-center justify-between gap-1.5 pb-2 border-b border-slate-200">
           <button
             type="button"
             onClick={handlePrevMonth}
-            className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
             title="Bulan Sebelumnya"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -315,7 +315,7 @@ export const DateInput: React.FC<DateInputProps> = ({
             <select
               value={viewMonth}
               onChange={(e) => setViewMonth(Number(e.target.value))}
-              className="bg-slate-950 border border-slate-700 text-white text-xs rounded-lg px-2 py-1 font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
+              className="bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-lg px-2 py-1 font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
             >
               {MONTH_NAMES.map((name, idx) => (
                 <option key={name} value={idx}>
@@ -328,7 +328,7 @@ export const DateInput: React.FC<DateInputProps> = ({
             <select
               value={viewYear}
               onChange={(e) => setViewYear(Number(e.target.value))}
-              className="bg-slate-950 border border-slate-700 text-white text-xs rounded-lg px-2 py-1 font-mono font-bold focus:outline-none focus:border-emerald-500 cursor-pointer"
+              className="bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-lg px-2 py-1 font-mono font-bold focus:outline-none focus:border-emerald-500 cursor-pointer"
             >
               {yearOptions.map((y) => (
                 <option key={y} value={y}>
@@ -341,7 +341,7 @@ export const DateInput: React.FC<DateInputProps> = ({
           <button
             type="button"
             onClick={handleNextMonth}
-            className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
             title="Bulan Berikutnya"
           >
             <ChevronRight className="w-4 h-4" />
@@ -354,7 +354,7 @@ export const DateInput: React.FC<DateInputProps> = ({
             <span
               key={day}
               className={`text-[10px] font-bold py-0.5 ${
-                idx === 0 ? 'text-rose-400' : 'text-slate-400'
+                idx === 0 ? 'text-rose-500' : 'text-slate-500'
               }`}
             >
               {day}
@@ -370,7 +370,7 @@ export const DateInput: React.FC<DateInputProps> = ({
             return (
               <div
                 key={`prev-${idx}`}
-                className="p-1.5 text-center text-slate-600 text-[11px] font-mono select-none"
+                className="p-1.5 text-center text-slate-300 text-[11px] font-mono select-none"
               >
                 {prevDay}
               </div>
@@ -390,10 +390,10 @@ export const DateInput: React.FC<DateInputProps> = ({
                 onClick={() => handleSelectDay(day)}
                 className={`p-1.5 rounded-xl text-center text-xs font-mono font-semibold transition-all cursor-pointer flex items-center justify-center ${
                   isSelected
-                    ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/40 ring-2 ring-emerald-400'
+                    ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/30 ring-2 ring-emerald-500'
                     : isToday
-                    ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/60 font-bold hover:bg-emerald-800/40'
-                    : 'text-slate-200 hover:bg-slate-800 hover:text-emerald-300'
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-500 font-bold hover:bg-emerald-100'
+                    : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-800'
                 }`}
               >
                 {day}
@@ -403,12 +403,12 @@ export const DateInput: React.FC<DateInputProps> = ({
         </div>
 
         {/* Footer: Tombol Cepat (Hari Ini, Besok, Kosongkan, Tutup) */}
-        <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-1 text-[11px]">
+        <div className="pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-1 text-[11px]">
           <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={handleSelectToday}
-              className="px-2 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold transition flex items-center gap-1 cursor-pointer border border-emerald-500/30"
+              className="px-2 py-1 rounded-lg bg-emerald-100/70 hover:bg-emerald-200 text-emerald-800 font-bold transition flex items-center gap-1 cursor-pointer border border-emerald-300"
               title="Pilih Tanggal Hari Ini"
             >
               <Check className="w-3 h-3" />
@@ -417,7 +417,7 @@ export const DateInput: React.FC<DateInputProps> = ({
             <button
               type="button"
               onClick={handleSelectTomorrow}
-              className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition cursor-pointer"
+              className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition cursor-pointer border border-slate-200"
               title="Pilih Tanggal Besok"
             >
               <span>Besok</span>
@@ -429,7 +429,7 @@ export const DateInput: React.FC<DateInputProps> = ({
               <button
                 type="button"
                 onClick={handleClear}
-                className="px-2 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/40 text-rose-300 font-medium transition cursor-pointer border border-rose-800/30"
+                className="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium transition cursor-pointer border border-rose-200"
                 title="Hapus Tanggal"
               >
                 <RotateCcw className="w-3 h-3" />
@@ -438,7 +438,7 @@ export const DateInput: React.FC<DateInputProps> = ({
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer flex items-center gap-1"
+              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer flex items-center gap-1 border border-slate-200"
             >
               <X className="w-3 h-3" />
               <span>Tutup</span>
@@ -463,7 +463,7 @@ export const DateInput: React.FC<DateInputProps> = ({
           placeholder={placeholder}
           required={required}
           disabled={disabled}
-          className="w-full pl-3 pr-11 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors disabled:opacity-50"
+          className="w-full pl-3 pr-11 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors shadow-xs disabled:opacity-50"
         />
 
         {/* Tombol Kalender di sisi kanan input: 1 Klik Membuka Pop-up Kalender */}
@@ -475,7 +475,7 @@ export const DateInput: React.FC<DateInputProps> = ({
           className={`absolute right-1 top-1 bottom-1 px-2.5 flex items-center justify-center rounded-lg transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 ${
             isOpen
               ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400'
-              : 'text-emerald-400 hover:text-white hover:bg-[#063D2E] active:scale-95'
+              : 'text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 active:scale-95'
           }`}
         >
           <Calendar className="w-4 h-4" />
