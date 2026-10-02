@@ -164,6 +164,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
             lokasiPenempatan: 'Tool Room',
             jobsite: defaultJobsite,
             kondisiAwal: 'Baik (Ready for Operation)',
+            spesifikasiKeterangan: '',
             tanggalPenginputan: today
           });
           break;
@@ -812,6 +813,19 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                     <option value="Sedang Diperbaiki (Maintenance)">Sedang Diperbaiki (Maintenance)</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Spesifikasi & Keterangan Tambahan (Kolom J)
+                </label>
+                <textarea
+                  value={formData.spesifikasiKeterangan || ''}
+                  onChange={(e) => handleChange('spesifikasiKeterangan', e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                  placeholder="Spesifikasi teknis, nomor seri tambahan, kapasitas, kelengkapan, dll..."
+                />
               </div>
             </>
           )}

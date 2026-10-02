@@ -27,6 +27,7 @@ import { AppsScriptModal } from './components/AppsScriptModal';
 import { DokumentasiModal } from './components/DokumentasiModal';
 import { HoSignatureModal } from './components/HoSignatureModal';
 import { ReturnLoanModal } from './components/ReturnLoanModal';
+import { DetailViewModal } from './components/DetailViewModal';
 import { ToastContainer, ToastMessage } from './components/Toast';
 import { FileText, Camera, Download, ExternalLink, ShieldCheck } from 'lucide-react';
 
@@ -47,6 +48,25 @@ export default function App() {
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [isDeveloperModalOpen, setIsDeveloperModalOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Detail View modal state (Aksi Lihat Detail - Icon Mata)
+  const [detailViewModalState, setDetailViewModalState] = useState<{
+    isOpen: boolean;
+    module: SheetModule;
+    item: any;
+  }>({
+    isOpen: false,
+    module: 'populasi-asset',
+    item: null
+  });
+
+  const handleOpenDetailModal = (mod: SheetModule, item: any) => {
+    setDetailViewModalState({
+      isOpen: true,
+      module: mod,
+      item
+    });
+  };
 
   // Form modal state
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -778,14 +798,11 @@ export default function App() {
   }
 
   // Column definitions matching the spreadsheet exactly
+  // Modul Populasi Asset: No Registrasi (A) | Nama Asset (B) | Kategori (C) | Jobsite (H) | Kondisi Awal (I) | Aksi
   const assetColumns = [
     { key: 'noRegistrasi', header: 'No Registrasi (A)' },
     { key: 'namaAsset', header: 'Nama Asset (B)' },
     { key: 'kategori', header: 'Kategori (C)' },
-    { key: 'merkBrand', header: 'Merk/Brand (D)' },
-    { key: 'noPo', header: 'No PO (E)' },
-    { key: 'tglSupply', header: 'Tgl Supply (F)' },
-    { key: 'lokasiPenempatan', header: 'Lokasi Penempatan (G)' },
     { key: 'jobsite', header: 'Jobsite (H)', isJobsiteColumn: true },
     {
       key: 'kondisiAwal',
@@ -804,25 +821,40 @@ export default function App() {
           </span>
         );
       }
-    },
-    { key: 'spesifikasiKeterangan', header: 'Spesifikasi & Keterangan (J)' },
-    { key: 'tanggalPenginputan', header: 'Tgl Penginputan (K)' }
+    }
   ];
 
+  // Modul Populasi Toolbox: No Toolbox (A) | Nama Toolbox (B) | Jobsite (H) | Kondisi (I) | PIC Penanggung Jawab (J) | Aksi
   const toolboxColumns = [
     { key: 'noToolbox', header: 'No Toolbox (A)' },
     { key: 'namaToolbox', header: 'Nama Toolbox (B)' },
-    { key: 'jenisToolbox', header: 'Kategori (C)' },
-    { key: 'merkBrand', header: 'Merk/Brand (D)' },
-    { key: 'jumlahItem', header: 'No PO (E)' },
-    { key: 'tglSupply', header: 'Tgl Supply (F)' },
-    { key: 'lokasiPenempatan', header: 'Lokasi Penempatan (G)' },
     { key: 'jobsite', header: 'Jobsite (H)', isJobsiteColumn: true },
-    { key: 'kondisi', header: 'Kondisi (I)' },
-    { key: 'pic', header: 'PIC Penanggung Jawab (J)' },
-    { key: 'keterangan', header: 'Keterangan (K)' }
+    {
+      key: 'kondisi',
+      header: 'Kondisi (I)',
+      render: (row: ToolboxItem) => {
+        const k = row.kondisi?.toLowerCase() || '';
+        let color = 'bg-slate-100 text-slate-700 border border-slate-200';
+        if (k.includes('baik') || k.includes('lengkap')) color = 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold';
+        else if (k.includes('ringan') || k.includes('kurang')) color = 'bg-amber-50 text-amber-700 border border-amber-200 font-semibold';
+        else if (k.includes('rusak') || k.includes('berat')) color = 'bg-rose-50 text-rose-700 border border-rose-200 font-semibold';
+        return (
+          <span className={`px-2.5 py-0.5 rounded-full text-[11px] ${color}`}>
+            {row.kondisi || '-'}
+          </span>
+        );
+      }
+    },
+    {
+      key: 'pic',
+      header: 'PIC Penanggung Jawab (J)',
+      render: (row: ToolboxItem) => (
+        <span className="font-semibold text-slate-900">{row.pic || <span className="text-slate-400 italic font-normal">-</span>}</span>
+      )
+    }
   ];
 
+  // Modul Peminjaman Tools: ID Peminjaman (A) | Kode Alat (B) | Nama Asset (C) | Jobsite (E) | Peminjam (F) | Tgl Pinjam (H) | Tgl Realisasi Kembali (J) | Status (K) | Kondisi Awal (L) | Kondisi Akhir (M) | Aksi
   const peminjamanColumns = [
     {
       key: 'idPeminjaman',
@@ -839,16 +871,9 @@ export default function App() {
       header: 'Nama Asset (C)',
       render: (row: PeminjamanItem) => row.namaAsset || row.namaTool || '-'
     },
-    { key: 'kategori', header: 'Kategori (D)' },
     { key: 'jobsite', header: 'Jobsite (E)', isJobsiteColumn: true },
     { key: 'peminjam', header: 'Peminjam (F)' },
-    { key: 'section', header: 'Section/Departemen (G)' },
     { key: 'tglPinjam', header: 'Tgl Pinjam (H)' },
-    {
-      key: 'estimasiKembali',
-      header: 'Estimasi Kembali (I)',
-      render: (row: PeminjamanItem) => row.estimasiKembali || row.tglRencanaKembali || '-'
-    },
     {
       key: 'tglRealisasiKembali',
       header: 'Tgl Realisasi Kembali (J)',
@@ -897,8 +922,7 @@ export default function App() {
           </span>
         );
       }
-    },
-    { key: 'keperluan', header: 'Keperluan (N)' }
+    }
   ];
 
   const pengadaanColumns = [
@@ -1355,6 +1379,7 @@ export default function App() {
               columns={assetColumns}
               currentUser={currentUser}
               onAdd={() => handleOpenCreateModal('populasi-asset')}
+              onView={(item) => handleOpenDetailModal('populasi-asset', item)}
               onEdit={(item) => handleOpenEditModal('populasi-asset', item)}
               onDelete={(item) => handlePromptDelete('populasi-asset', item)}
               onManualSync={handleManualSync}
@@ -1371,6 +1396,7 @@ export default function App() {
               columns={toolboxColumns}
               currentUser={currentUser}
               onAdd={() => handleOpenCreateModal('populasi-toolbox')}
+              onView={(item) => handleOpenDetailModal('populasi-toolbox', item)}
               onEdit={(item) => handleOpenEditModal('populasi-toolbox', item)}
               onDelete={(item) => handlePromptDelete('populasi-toolbox', item)}
               onManualSync={handleManualSync}
@@ -1387,6 +1413,7 @@ export default function App() {
               columns={peminjamanColumns}
               currentUser={currentUser}
               onAdd={() => handleOpenCreateModal('peminjaman-tools')}
+              onView={(item) => handleOpenDetailModal('peminjaman-tools', item)}
               onEdit={(item) => handleOpenEditModal('peminjaman-tools', item)}
               onDelete={(item) => handlePromptDelete('peminjaman-tools', item)}
               onReturn={(item) => handleOpenReturnModal(item)}
@@ -1527,6 +1554,15 @@ export default function App() {
         loanItem={returnLoanModalState.loanItem}
         onConfirmReturn={handleConfirmReturn}
         isSubmitting={isSubmittingReturn}
+      />
+
+      {/* Detail View Modal (Aksi Lihat Detail - Icon Mata) */}
+      <DetailViewModal
+        isOpen={detailViewModalState.isOpen}
+        onClose={() => setDetailViewModalState((prev) => ({ ...prev, isOpen: false }))}
+        module={detailViewModalState.module}
+        item={detailViewModalState.item}
+        onEdit={(item) => handleOpenEditModal(detailViewModalState.module, item)}
       />
 
       {/* Delete Confirmation Modal (HO - Balikpapan Only) */}
