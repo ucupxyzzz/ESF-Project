@@ -925,21 +925,11 @@ export default function App() {
     }
   ];
 
+  // Modul Pengadaan Barang: Jobsite (B) | Kategori (C) | Type (D) | Nama Alat (G) | Qty (H) | Tgl Pengadaan (I) | No UR (J) | No PR (K) | No PO (L) | Qty PR (M) | Qty PO (N) | Qty GR (O) | Vendor (P) | Total Price (Q) | Aging Days (R) | Tgl Supply (S) | Status (U) | Aksi
   const pengadaanColumns = [
-    {
-      key: 'noPengadaan',
-      header: 'No Pengadaan (A)',
-      render: (row: PengadaanItem) => (
-        <span className="font-mono text-emerald-800 font-bold">
-          {row.noPengadaan || row.noPoPr || '-'}
-        </span>
-      )
-    },
     { key: 'jobsite', header: 'Jobsite (B)', isJobsiteColumn: true },
     { key: 'kategori', header: 'Kategori (C)' },
     { key: 'typeBarang', header: 'Type (D)' },
-    { key: 'noCer', header: 'No CER (E)' },
-    { key: 'partNumber', header: 'Part Number (F)' },
     {
       key: 'namaAlat',
       header: 'Nama Alat (G)',
@@ -974,11 +964,6 @@ export default function App() {
     { key: 'agingDays', header: 'Aging Days (R)' },
     { key: 'tglSupply', header: 'Tgl Supply (S)' },
     {
-      key: 'remarks',
-      header: 'Remarks (T)',
-      render: (row: PengadaanItem) => row.remarks || row.keterangan || '-'
-    },
-    {
       key: 'status',
       header: 'Status (U)',
       render: (row: PengadaanItem) => (
@@ -994,59 +979,18 @@ export default function App() {
           {row.status || 'Draft'}
         </span>
       )
-    },
-    {
-      key: 'dokumentasi',
-      header: 'Dokumentasi (V)',
-      render: (row: PengadaanItem) => (
-        <button
-          type="button"
-          onClick={() => {
-            setDokumentasiModalState({
-              isOpen: true,
-              title: `Dokumen Pengadaan ${row.noPengadaan || ''}`,
-              url: row.dokumentasi || '',
-              isImage: false,
-              folderUrl: GDRIVE_CONFIG.PENGADAAN_FOLDER_URL,
-              folderName: 'Pengadaan Barang',
-              bastItem: null
-            });
-          }}
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-            row.dokumentasi
-              ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
-          }`}
-        >
-          <FileText className="w-3.5 h-3.5 text-emerald-700" />
-          <span>{row.dokumentasi ? 'Lihat Dokumen' : 'Folder GDrive'}</span>
-        </button>
-      )
     }
   ];
 
+  // Modul BA Kerusakan Alat: Jobsite (D) | No Register (E) | Nama Asset (F) | Tgl Kerusakan (I) | Life Time (J) | Action (K) | Status (L) | Aksi
   const kerusakanColumns = [
-    { key: 'noBa', header: 'No Berita Acara (A)' },
-    { key: 'noOsr', header: 'No OSR (B)' },
-    { key: 'jenisTools', header: 'Jenis Tools (C)' },
     { key: 'jobsite', header: 'Jobsite (D)', isJobsiteColumn: true },
     { key: 'noRegister', header: 'No Register (E)' },
     {
       key: 'namaAsset',
       header: 'Nama Asset (F)',
-      render: (row: BaKerusakanItem) => (
-        <div className="flex items-center gap-1.5">
-          <span>{row.namaAsset || row.namaAlat || '-'}</span>
-          {(row.fotoKerusakan || row.dokumentasi) && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              📷 Foto
-            </span>
-          )}
-        </div>
-      )
+      render: (row: BaKerusakanItem) => row.namaAsset || row.namaAlat || '-'
     },
-    { key: 'brand', header: 'Brand (G)' },
-    { key: 'tglSupply', header: 'Tgl Supply (H)' },
     {
       key: 'tglKerusakan',
       header: 'Tgl Kerusakan (I)',
@@ -1072,60 +1016,11 @@ export default function App() {
           {row.status || 'Investigasi'}
         </span>
       )
-    },
-    {
-      key: 'kronologi',
-      header: 'Kronologi (N)',
-      render: (row: BaKerusakanItem) => (
-        <span className="text-xs text-slate-700 max-w-xs line-clamp-2" title={row.kronologi || row.kronologiKerusakan || ''}>
-          {row.kronologi || row.kronologiKerusakan || '-'}
-        </span>
-      )
-    },
-    {
-      key: 'dokumentasi',
-      header: 'Dokumentasi (M)',
-      render: (row: BaKerusakanItem) => (
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => {
-              setDokumentasiModalState({
-                isOpen: true,
-                title: `BA Kerusakan ${row.noBa || ''} - ${row.namaAsset || ''}`,
-                url: row.fotoKerusakan || row.dokumentasi || '',
-                isImage: true,
-                folderUrl: GDRIVE_CONFIG.KERUSAKAN_FOLDER_URL,
-                folderName: 'BA Kerusakan Alat',
-                bastItem: null,
-                kerusakanItem: row
-              });
-            }}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-              row.fotoKerusakan || row.dokumentasi
-                ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
-            }`}
-            title="Lihat Foto & Opsi Upload Final"
-          >
-            <Camera className="w-3.5 h-3.5 text-emerald-700" />
-            <span>{row.fotoKerusakan || row.dokumentasi ? 'Lihat Foto' : 'Dokumentasi'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => PdfService.downloadBaKerusakanPdf(row)}
-            className="p-1.5 rounded-lg text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition cursor-pointer"
-            title="Download PDF BA Kerusakan Resmi (4 Approval)"
-          >
-            <Download className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )
     }
   ];
 
+  // Modul OSR Tools & Facility: Jobsite (B) | Date OSR (C) | No Registrasi (D) | Nama Asset (E) | PR (G) | PO (H) | Vendor (I) | Amount (J) | Condition (K) | Remarks (L) | Tgl Supply (M) | Status (N) | Aksi
   const osrColumns = [
-    { key: 'noOsr', header: 'No OSR (A)' },
     { key: 'jobsite', header: 'Jobsite (B)', isJobsiteColumn: true },
     {
       key: 'dateOsr',
@@ -1138,7 +1033,6 @@ export default function App() {
       header: 'Nama Asset (E)',
       render: (row: OsrItem) => row.namaAsset || row.namaTool || '-'
     },
-    { key: 'keteranganKerusakan', header: 'Keterangan Kerusakan (F)' },
     { key: 'pr', header: 'PR (G)' },
     { key: 'po', header: 'PO (H)' },
     {
@@ -1174,140 +1068,42 @@ export default function App() {
           {row.status || 'Sedang Dikerjakan'}
         </span>
       )
-    },
-    {
-      key: 'dokumentasi',
-      header: 'Dokumentasi (O)',
-      render: (row: OsrItem) => (
-        <button
-          type="button"
-          onClick={() => {
-            setDokumentasiModalState({
-              isOpen: true,
-              title: `Dokumentasi OSR ${row.noOsr || ''} - ${row.namaAsset || ''}`,
-              url: row.dokumentasi || row.fotoKerusakan || '',
-              isImage: true,
-              folderUrl: GDRIVE_CONFIG.OSR_FOLDER_URL,
-              folderName: 'OSR Tools & Facility',
-              bastItem: null,
-              kerusakanItem: null
-            });
-          }}
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-            row.dokumentasi || row.fotoKerusakan
-              ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
-          }`}
-        >
-          <Camera className="w-3.5 h-3.5 text-emerald-700" />
-          <span>{row.dokumentasi || row.fotoKerusakan ? 'Lihat Foto' : 'Folder GDrive'}</span>
-        </button>
-      )
     }
   ];
 
+  // Modul BA Serah Terima: No Bast (A) | Jobsite (B) | Nama Asset (D) | PO (E) | No Register (G) | Penerima (H) | Status (I) | Aksi
   const bastColumns = [
     { key: 'noBast', header: 'No Bast (A)' },
     { key: 'jobsite', header: 'Jobsite (B)', isJobsiteColumn: true },
-    {
-      key: 'date',
-      header: 'Date (C)',
-      render: (row: BaSerahTerimaItem) => row.date || row.tglSerahTerima || '-'
-    },
     { key: 'namaAsset', header: 'Nama Asset (D)' },
     { key: 'po', header: 'PO (E)' },
-    {
-      key: 'remarks',
-      header: 'Remarks (F)',
-      render: (row: BaSerahTerimaItem) => row.remarks || row.keterangan || '-'
-    },
     { key: 'noRegister', header: 'No Register (G)' },
     {
       key: 'penerima',
       header: 'Penerima (H)',
-      render: (row: BaSerahTerimaItem) => row.penerima || row.pihakKedua || '-'
+      render: (row: BaSerahTerimaItem) => (
+        <span className="font-semibold text-slate-900">{row.penerima || row.pihakKedua || '-'}</span>
+      )
     },
     {
       key: 'status',
       header: 'Status (I)',
-      render: (row: BaSerahTerimaItem) => (
-        <span
-          className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
-            row.status === 'Terverifikasi HO'
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              : 'bg-sky-50 text-sky-700 border border-sky-200'
-          }`}
-        >
-          {row.status || 'Draft'}
-        </span>
-      )
-    },
-    {
-      key: 'dokumentasi',
-      header: 'Dokumentasi (J)',
       render: (row: BaSerahTerimaItem) => {
-        const isApproved = Boolean(row.hoSignature || row.status === 'Terverifikasi HO');
-        const isHo = currentUser?.role === 'ho' || currentUser?.jobsite === 'HO - Balikpapan';
+        const hasBastHo = Boolean(row.bastHo || row.dokumentasi);
+        const hasBastSite = Boolean(row.bastSite || row.dokumentasiSite);
+        const isClosed = (hasBastHo && hasBastSite) || (row.status && row.status.toUpperCase() === 'CLOSED');
+        const displayStatus = isClosed ? 'CLOSED' : (row.status || 'Draft');
+
         return (
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                setDokumentasiModalState({
-                  isOpen: true,
-                  title: `Dokumen BAST ${row.noBast || ''}`,
-                  url: row.dokumentasi || '',
-                  isImage: false,
-                  folderUrl: GDRIVE_CONFIG.BAST_FOLDER_URL,
-                  folderName: 'BA Serah Terima',
-                  bastItem: row
-                });
-              }}
-              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 flex items-center gap-1 transition"
-              title="Lihat Dokumen & Opsi Upload Final"
-            >
-              <FileText className="w-3 h-3 text-emerald-700" />
-              <span>Dokumen</span>
-            </button>
-
-            {isHo && !isApproved && (
-              <button
-                type="button"
-                onClick={() => {
-                  setHoSignatureModalState({
-                    isOpen: true,
-                    bastItem: row
-                  });
-                }}
-                className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1 transition shadow-sm"
-                title="Berikan Tanda Tangan Digital HO"
-              >
-                <ShieldCheck className="w-3 h-3" />
-                <span>Sign HO</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={() => {
-                if (!isApproved) {
-                  alert(
-                    'Dokumen BAST dapat didownload setelah dilakukan approval berupa tanda tangan digital oleh user HO - Balikpapan.'
-                  );
-                  return;
-                }
-                PdfService.downloadBastPdf(row);
-              }}
-              className={`p-1.5 rounded-lg text-xs transition ${
-                isApproved
-                  ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 cursor-pointer'
-                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
-              }`}
-              title={isApproved ? 'Download PDF BAST Resmi' : 'Menunggu Approval HO Balikpapan'}
-            >
-              <Download className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <span
+            className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+              isClosed
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                : 'bg-slate-100 text-slate-600 border border-slate-300'
+            }`}
+          >
+            {displayStatus}
+          </span>
         );
       }
     }
@@ -1431,6 +1227,7 @@ export default function App() {
               columns={pengadaanColumns}
               currentUser={currentUser}
               onAdd={() => handleOpenCreateModal('pengadaan-barang')}
+              onView={(item) => handleOpenDetailModal('pengadaan-barang', item)}
               onEdit={(item) => handleOpenEditModal('pengadaan-barang', item)}
               onDelete={(item) => handlePromptDelete('pengadaan-barang', item)}
               onManualSync={handleManualSync}
@@ -1447,6 +1244,7 @@ export default function App() {
               columns={kerusakanColumns}
               currentUser={currentUser}
               onAdd={() => handleOpenCreateModal('ba-kerusakan')}
+              onView={(item) => handleOpenDetailModal('ba-kerusakan', item)}
               onEdit={(item) => handleOpenEditModal('ba-kerusakan', item)}
               onDelete={(item) => handlePromptDelete('ba-kerusakan', item)}
               onManualSync={handleManualSync}
@@ -1463,6 +1261,7 @@ export default function App() {
               columns={osrColumns}
               currentUser={currentUser}
               onAdd={() => handleOpenCreateModal('osr-tools')}
+              onView={(item) => handleOpenDetailModal('osr-tools', item)}
               onEdit={(item) => handleOpenEditModal('osr-tools', item)}
               onDelete={(item) => handlePromptDelete('osr-tools', item)}
               onManualSync={handleManualSync}
@@ -1479,6 +1278,7 @@ export default function App() {
               columns={bastColumns}
               currentUser={currentUser}
               onAdd={() => handleOpenCreateModal('ba-serah-terima')}
+              onView={(item) => handleOpenDetailModal('ba-serah-terima', item)}
               onEdit={(item) => handleOpenEditModal('ba-serah-terima', item)}
               onDelete={(item) => handlePromptDelete('ba-serah-terima', item)}
               onManualSync={handleManualSync}

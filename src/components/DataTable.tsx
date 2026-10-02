@@ -341,8 +341,8 @@ export const DataTable: React.FC<DataTableProps> = ({
                           <button
                             type="button"
                             onClick={() => onView(row)}
-                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
-                            title="Lihat Rincian"
+                            className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 transition-colors cursor-pointer"
+                            title="Lihat Seluruh Data (Detail View)"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>

@@ -217,7 +217,12 @@ function handleDataOperation(ss, action, module, payload, key, userRole, jobsite
           try {
             driveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
           } catch (e) {}
-          payload.dokumentasi = driveFile.getUrl();
+          if (module === 'bast') {
+            payload.bastSite = driveFile.getUrl();
+            payload.dokumentasiSite = driveFile.getUrl();
+          } else {
+            payload.dokumentasi = driveFile.getUrl();
+          }
         }
       } catch (driveErr) {
         // Continue if drive upload encounters issue
@@ -404,7 +409,7 @@ function getDefaultHeader(key) {
     case 'OSR':
       return ["No OSR", "Jobsite", "Date OSR", "No Registrasi", "Nama Asset", "Keterangan Kerusakan", "PR", "PO", "Vendor", "Amount", "Condition", "Remarks", "Tgl Supply", "Status", "Dokumentasi"];
     case 'BAST':
-      return ["No Bast", "Jobsite", "Date", "Nama Asset", "PO", "Remarks", "No Register", "Penerima", "Status", "Dokumentasi"];
+      return ["No Bast", "Jobsite", "Date", "Nama Asset", "PO", "Remarks", "No Register", "Penerima", "Status", "BAST HO", "BAST Site"];
     default:
       return [];
   }
@@ -534,7 +539,8 @@ function convertItemToRow(module, item) {
         item.noRegister || '', // G
         item.penerima || item.pihakKedua || '', // H
         item.status || 'Draft', // I
-        item.dokumentasi || '' // J
+        item.bastHo || item.dokumentasi || '', // J: BAST HO
+        item.bastSite || item.dokumentasiSite || '' // K: BAST Site
       ];
     default:
       return [];

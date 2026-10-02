@@ -190,7 +190,10 @@ export interface BaSerahTerimaItem {
   noRegister?: string; // Kolom G
   penerima?: string; // Kolom H
   status: string; // Kolom I
-  dokumentasi?: string; // Kolom J (Google Drive link / final upload BAST)
+  bastHo?: string; // Kolom J (BAST HO)
+  dokumentasi?: string; // Compatibility alias Kolom J
+  bastSite?: string; // Kolom K (BAST Site - Google Drive link)
+  dokumentasiSite?: string; // Compatibility alias Kolom K
   hoSignature?: string; // Digital signature HO Balikpapan (Base64)
   hoSignDate?: string;
   hoSignedBy?: string;

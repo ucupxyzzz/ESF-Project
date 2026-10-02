@@ -978,7 +978,8 @@ export class StorageService {
           const noRegister = String(r[6] || '').trim();
           const penerima = String(r[7] || '').trim();
           const status = String(r[8] || 'Draft').trim();
-          const dokumentasi = String(r[9] || '').trim(); // Kolom J (index 9)
+          const bastHo = String(r[9] || '').trim(); // Kolom J (index 9)
+          const bastSite = String(r[10] || '').trim(); // Kolom K (index 10)
 
           return {
             id: `bst-live-${idx}-${noBast.replace(/[^a-zA-Z0-9]/g, '-')}`,
@@ -994,7 +995,10 @@ export class StorageService {
             penerima,
             pihakKedua: penerima,
             status,
-            dokumentasi
+            bastHo,
+            dokumentasi: bastHo,
+            bastSite,
+            dokumentasiSite: bastSite
           };
         }
         return r;

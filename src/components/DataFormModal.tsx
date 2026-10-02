@@ -4,7 +4,7 @@ import { ALL_JOBSITES } from '../data/defaultUsers';
 import { StorageService } from '../services/storage';
 import { getNextLoanId, getNextLoanIdWithOffset, getJobsiteShortCode, getNextPengadaanId, getNextBaKerusakanId } from '../utils/loanIdGenerator';
 import { DateInput } from './DateInput';
-import { X, Plus, Trash2, Camera, Upload, CheckCircle2, FileText, Image as ImageIcon, AlertTriangle } from 'lucide-react';
+import { X, Plus, Trash2, Camera, Upload, Download, CheckCircle2, FileText, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 
 interface DataFormModalProps {
   isOpen: boolean;
@@ -77,13 +77,16 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
   const [fotoOsr, setFotoOsr] = useState<string>('');
   const [fotoOsrName, setFotoOsrName] = useState<string>('');
 
-  const [dokumenBast, setDokumenBast] = useState<string>('');
-  const [dokumenBastName, setDokumenBastName] = useState<string>('');
+  const [dokumenBastHo, setDokumenBastHo] = useState<string>('');
+  const [dokumenBastHoName, setDokumenBastHoName] = useState<string>('');
+
+  const [dokumenBastSite, setDokumenBastSite] = useState<string>('');
+  const [dokumenBastSiteName, setDokumenBastSiteName] = useState<string>('');
 
   // Hidden file inputs for Camera and File Picker
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const activeAttachmentTargetRef = useRef<'pengadaan' | 'kerusakan' | 'osr' | 'bast'>('pengadaan');
+  const activeAttachmentTargetRef = useRef<'pengadaan' | 'kerusakan' | 'osr' | 'bast-ho' | 'bast-site'>('pengadaan');
 
   // Fetch registered assets for the current jobsite
   const allAssets = availableAssets && availableAssets.length > 0 ? availableAssets : StorageService.getAssets();
@@ -100,7 +103,12 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
       }
       if (itemToEdit.dokumentasi) {
         setDokumenPengadaan(itemToEdit.dokumentasi);
-        setDokumenBast(itemToEdit.dokumentasi);
+      }
+      if (itemToEdit.bastHo || itemToEdit.dokumentasi) {
+        setDokumenBastHo(itemToEdit.bastHo || itemToEdit.dokumentasi);
+      }
+      if (itemToEdit.bastSite || itemToEdit.dokumentasiSite) {
+        setDokumenBastSite(itemToEdit.bastSite || itemToEdit.dokumentasiSite);
       }
       if (module === 'peminjaman-tools') {
         setLoanedItems([{
@@ -147,8 +155,10 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
       setFotoOsrName('');
       setDokumenPengadaan('');
       setDokumenPengadaanName('');
-      setDokumenBast('');
-      setDokumenBastName('');
+      setDokumenBastHo('');
+      setDokumenBastHoName('');
+      setDokumenBastSite('');
+      setDokumenBastSiteName('');
 
       const siteCode = getJobsiteShortCode(defaultJobsite);
 
@@ -393,7 +403,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
     reader.readAsDataURL(file);
   };
 
-  const handleTriggerUpload = (target: 'pengadaan' | 'kerusakan' | 'osr' | 'bast', isCamera: boolean) => {
+  const handleTriggerUpload = (target: 'pengadaan' | 'kerusakan' | 'osr' | 'bast-ho' | 'bast-site', isCamera: boolean) => {
     activeAttachmentTargetRef.current = target;
     if (isCamera && cameraInputRef.current) {
       cameraInputRef.current.click();
@@ -413,8 +423,10 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
       processAndCompressFile(file, setFotoKerusakan, setFotoKerusakanName);
     } else if (target === 'osr') {
       processAndCompressFile(file, setFotoOsr, setFotoOsrName);
-    } else if (target === 'bast') {
-      processAndCompressFile(file, setDokumenBast, setDokumenBastName);
+    } else if (target === 'bast-ho') {
+      processAndCompressFile(file, setDokumenBastHo, setDokumenBastHoName);
+    } else if (target === 'bast-site') {
+      processAndCompressFile(file, setDokumenBastSite, setDokumenBastSiteName);
     }
 
     // Reset input so selecting the same file again triggers onChange
@@ -563,6 +575,11 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
       const validAssets = bastAssets.filter(ba => ba.noRegister || ba.namaAsset);
       const itemsToMap = validAssets.length > 0 ? validAssets : bastAssets;
 
+      const finalBastHo = dokumenBastHo || formData.bastHo || formData.dokumentasi || '';
+      const finalBastSite = dokumenBastSite || formData.bastSite || formData.dokumentasiSite || '';
+      const isClosed = Boolean(finalBastHo && finalBastSite);
+      const computedStatus = isClosed ? 'CLOSED' : 'Draft';
+
       const items = itemsToMap.map((ba, idx) => ({
         id: isEdit ? (formData.id || `bst-${timestamp}`) : `bst-${timestamp}-${idx}`,
         noBast: formData.noBast,
@@ -576,12 +593,15 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
         keterangan: ba.remarks || formData.remarks || '',
         penerima: formData.penerima || '',
         pihakKedua: formData.penerima || '',
-        status: formData.status || 'Draft',
-        dokumentasi: dokumenBast || formData.dokumentasi || '',
-        fileData: dokumenBast
+        status: computedStatus,
+        bastHo: finalBastHo,
+        dokumentasi: finalBastHo,
+        bastSite: finalBastSite,
+        dokumentasiSite: finalBastSite,
+        fileData: dokumenBastSite
           ? {
-              base64: dokumenBast,
-              fileName: dokumenBastName || `${formData.noBast || 'BAST'}.pdf`,
+              base64: dokumenBastSite,
+              fileName: dokumenBastSiteName || `${formData.noBast ? formData.noBast.replace(/[^a-zA-Z0-9_-]/g, '_') : 'BAST'}_Site.pdf`,
               mimeType: 'application/pdf'
             }
           : undefined
@@ -1696,10 +1716,10 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                 />
               </div>
 
-              {/* Lampiran Foto Alat Rusak (Kolom M) with Dual Camera / File Upload */}
+              {/* Lampiran BA Kerusakan Alat (Kolom M) with Dual Camera / File Upload */}
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 shadow-xs">
                 <label className="block text-xs font-bold text-slate-700 flex items-center justify-between">
-                  <span>Lampiran Foto Alat Rusak (Kolom M)</span>
+                  <span>Lampiran BA Kerusakan Alat (Kolom M)</span>
                   <span className="text-[10px] text-emerald-700 font-mono">Tersimpan ke GDrive BA Kerusakan</span>
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
@@ -1717,7 +1737,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer border border-slate-300 shadow-xs"
                   >
                     <Upload className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Pilih File Gambar</span>
+                    <span>Pilih File PDF/Scan</span>
                   </button>
                   {fotoKerusakan && (
                     <button
@@ -1854,10 +1874,10 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                 />
               </div>
 
-              {/* Lampiran Foto Alat Rusak OSR (Kolom O) - Requirement 7 & 8 */}
+              {/* Lampiran Dokumen OSR (Kolom O) */}
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 shadow-xs">
                 <label className="block text-xs font-bold text-slate-700 flex items-center justify-between">
-                  <span>Lampiran Foto/Gambar Alat Rusak OSR (Kolom O)</span>
+                  <span>Lampiran Dokumen OSR (Kolom O)</span>
                   <span className="text-[10px] text-emerald-700 font-mono">Folder GDrive: 117QSUo3_wux9S4_2GvX528Fi6HqLTtjV</span>
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
@@ -1875,7 +1895,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer border border-slate-300 shadow-xs"
                   >
                     <Upload className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Pilih File Gambar</span>
+                    <span>Pilih File PDF/Scan</span>
                   </button>
                   {fotoOsr && (
                     <button
@@ -1942,37 +1962,21 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Penerima di Jobsite (Kolom H)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.penerima || formData.pihakKedua || ''}
-                    onChange={(e) => {
-                      handleChange('penerima', e.target.value);
-                      handleChange('pihakKedua', e.target.value);
-                    }}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
-                    placeholder="Nama Lengkap Penerima"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Status (Kolom I)
-                  </label>
-                  <select
-                    value={formData.status || 'Draft'}
-                    onChange={(e) => handleChange('status', e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs cursor-pointer"
-                  >
-                    <option value="Draft">Draft</option>
-                    <option value="Ditandatangani">Ditandatangani</option>
-                    <option value="Terverifikasi HO">Terverifikasi HO</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Penerima di Jobsite (Kolom H)
+                </label>
+                <input
+                  type="text"
+                  value={formData.penerima || formData.pihakKedua || ''}
+                  onChange={(e) => {
+                    handleChange('penerima', e.target.value);
+                    handleChange('pihakKedua', e.target.value);
+                  }}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                  placeholder="Nama Lengkap Penerima"
+                  required
+                />
               </div>
 
               {/* Multi-Asset Selector for BAST (Requirement 4) */}
@@ -2105,16 +2109,16 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                 />
               </div>
 
-              {/* Lampiran Dokumen BAST (Kolom J) with Dual Camera / File Upload */}
+              {/* Lampiran Dokumen BAST HO (Kolom J) */}
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 shadow-xs">
                 <label className="block text-xs font-bold text-slate-700 flex items-center justify-between">
-                  <span>Lampiran Dokumen BAST (Kolom J)</span>
-                  <span className="text-[10px] text-emerald-700 font-mono">Tersimpan ke GDrive BAST</span>
+                  <span>Lampiran Dokumen BAST HO (Kolom J)</span>
+                  <span className="text-[10px] text-emerald-700 font-mono">Dapat diunduh oleh Tim Site</span>
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => handleTriggerUpload('bast', true)}
+                    onClick={() => handleTriggerUpload('bast-ho', true)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer border border-slate-300 shadow-xs"
                   >
                     <Camera className="w-3.5 h-3.5 text-emerald-700" />
@@ -2122,18 +2126,20 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleTriggerUpload('bast', false)}
+                    onClick={() => handleTriggerUpload('bast-ho', false)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer border border-slate-300 shadow-xs"
                   >
                     <Upload className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Pilih File PDF / Scan</span>
+                    <span>Pilih File PDF/Scan</span>
                   </button>
-                  {dokumenBast && (
+                  {(dokumenBastHo || formData.bastHo) && (
                     <button
                       type="button"
                       onClick={() => {
-                        setDokumenBast('');
-                        setDokumenBastName('');
+                        setDokumenBastHo('');
+                        setDokumenBastHoName('');
+                        handleChange('bastHo', '');
+                        handleChange('dokumentasi', '');
                       }}
                       className="text-xs text-rose-600 hover:text-rose-800 cursor-pointer px-2"
                     >
@@ -2141,10 +2147,76 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                     </button>
                   )}
                 </div>
-                {dokumenBastName && (
+
+                {/* Dokumen BAST HO Preview & Download Button for Site Team */}
+                {(dokumenBastHo || formData.bastHo) && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 mt-2">
+                    <div className="flex items-center gap-2 text-xs text-emerald-800 font-medium">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="truncate max-w-xs font-mono text-[11px]">
+                        {dokumenBastHoName || 'Dokumen BAST HO Tersedia'}
+                      </span>
+                    </div>
+                    <a
+                      href={dokumenBastHo || formData.bastHo}
+                      download={`BAST_HO_${formData.noBast ? String(formData.noBast).replace(/[^a-zA-Z0-9_-]/g, '_') : 'Dokumen'}.pdf`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition shadow-xs cursor-pointer shrink-0"
+                      title="Download dokumen BAST HO untuk ditandatangani manual tim site"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download BAST HO</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Lampiran Dokumen BAST Site (Kolom K) - Terintegrasi Google Drive Folder */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 shadow-xs">
+                <label className="block text-xs font-bold text-slate-700 flex items-center justify-between">
+                  <span>Lampiran Dokumen BAST Site (Kolom K)</span>
+                  <span className="text-[10px] text-emerald-700 font-mono">Tersimpan ke GDrive BAST Site</span>
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleTriggerUpload('bast-site', true)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer border border-slate-300 shadow-xs"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Ambil Foto (Kamera)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTriggerUpload('bast-site', false)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer border border-slate-300 shadow-xs"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Pilih File PDF/Scan</span>
+                  </button>
+                  {dokumenBastSite && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDokumenBastSite('');
+                        setDokumenBastSiteName('');
+                      }}
+                      className="text-xs text-rose-600 hover:text-rose-800 cursor-pointer px-2"
+                    >
+                      Hapus
+                    </button>
+                  )}
+                </div>
+                {dokumenBastSiteName && (
                   <div className="flex items-center gap-2 text-xs text-emerald-700 font-medium">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Dokumen siap diunggah: {dokumenBastName}</span>
+                    <span>Dokumen siap diunggah ke GDrive: {dokumenBastSiteName}</span>
+                  </div>
+                )}
+                {formData.bastSite && !dokumenBastSite && (
+                  <div className="text-[11px] text-slate-500 font-mono break-all pt-1">
+                    Link saat ini: {formData.bastSite}
                   </div>
                 )}
               </div>
