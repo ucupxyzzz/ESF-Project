@@ -27,7 +27,9 @@ import {
   Plus,
   Calendar,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  Clock,
+  FileText
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -63,26 +65,138 @@ export const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const isHO = currentUser.role === 'ho';
 
-  // Condition counts for assets
-  const baikCount = assets.filter((a) => a.kondisiAwal?.toLowerCase().includes('baik')).length;
-  const rusakRinganCount = assets.filter((a) =>
-    a.kondisiAwal?.toLowerCase().includes('ringan')
-  ).length;
-  const rusakBeratCount = assets.filter((a) =>
-    a.kondisiAwal?.toLowerCase().includes('berat')
-  ).length;
-  const maintenanceCount = assets.filter((a) =>
-    a.kondisiAwal?.toLowerCase().includes('perbaiki') || a.kondisiAwal?.toLowerCase().includes('maint')
-  ).length;
+  // Helper for computing clean percentages (e.g. 25%, 33.3%, 0%)
+  const formatPct = (count: number, total: number): string => {
+    if (!total || total <= 0) return '0%';
+    const val = (count / total) * 100;
+    return val % 1 === 0 ? `${val}%` : `${val.toFixed(1)}%`;
+  };
 
+  // ==============================================================
+  // 1. TOTAL ASSETS (Modul: "Populasi Asset")
+  // ==============================================================
   const totalAssets = assets.length;
-  const readyPercent = totalAssets > 0 ? Math.round((baikCount / totalAssets) * 100) : 0;
+  const assetBaikCount = assets.filter((a) => {
+    const k = (a.kondisiAwal || '').toLowerCase();
+    return k.includes('baik') || k.includes('ready');
+  }).length;
+  const assetRusakBeratCount = assets.filter((a) => {
+    const k = (a.kondisiAwal || '').toLowerCase();
+    return k.includes('berat') || k.includes('non-operational');
+  }).length;
+  const assetRusakRinganCount = assets.filter((a) => {
+    const k = (a.kondisiAwal || '').toLowerCase();
+    return k.includes('ringan') || k.includes('minor');
+  }).length;
+  const assetMaintenanceCount = assets.filter((a) => {
+    const k = (a.kondisiAwal || '').toLowerCase();
+    return k.includes('perbaiki') || k.includes('maint') || k.includes('sedang');
+  }).length;
+  const readyPercent = totalAssets > 0 ? Math.round((assetBaikCount / totalAssets) * 100) : 0;
+  // Aliases for compatibility with legacy charts
+  const baikCount = assetBaikCount;
+  const rusakRinganCount = assetRusakRinganCount;
+  const rusakBeratCount = assetRusakBeratCount;
+  const maintenanceCount = assetMaintenanceCount;
 
-  // Active loans
-  const activeLoans = peminjaman.filter((p) => p.status === 'Dipinjam' || p.status === 'Terlambat').length;
-  const pendingPengadaan = pengadaan.filter((p) => p.status === 'Diajukan' || p.status === 'Draft').length;
-  const activeOsr = osr.filter((o) => o.status === 'Sedang Dikerjakan' || o.status === 'Testing').length;
+  // ==============================================================
+  // 2. TOOL BOX (Modul: "Populasi Toolbox")
+  // ==============================================================
+  const totalToolboxes = toolboxes.length;
+  const toolboxLengkapCount = toolboxes.filter((t) => {
+    const k = (t.kondisi || '').toLowerCase();
+    return (k.includes('lengkap') && !k.includes('tidak')) || (k.includes('baik') && !k.includes('tidak'));
+  }).length;
+  const toolboxTidakLengkapCount = toolboxes.filter((t) => {
+    const k = (t.kondisi || '').toLowerCase();
+    return k.includes('tidak') || k.includes('hilang') || k.includes('kurang') || (!k.includes('lengkap') && !k.includes('baik') && k.length > 0);
+  }).length;
+
+  // ==============================================================
+  // 3. OSR TOOLS & FACILITY (Modul: "OSR Tools & Facility")
+  // Remarks: Waiting Administrasi, Under Repair, Waiting PO, Waiting PR, Waiting Quotation, Cancel Repair, Done Supply
+  // ==============================================================
+  const totalOsr = osr.length;
+  const osrWaitingAdmin = osr.filter((o) => {
+    const r = `${o.remarks || ''} ${o.keterangan || ''} ${o.condition || ''} ${o.status || ''}`.toLowerCase();
+    return r.includes('admin');
+  }).length;
+  const osrUnderRepair = osr.filter((o) => {
+    const r = `${o.remarks || ''} ${o.keterangan || ''} ${o.condition || ''} ${o.status || ''}`.toLowerCase();
+    return (r.includes('under repair') || r.includes('dikerjakan') || (r.includes('repair') && !r.includes('cancel')));
+  }).length;
+  const osrWaitingPo = osr.filter((o) => {
+    const r = `${o.remarks || ''} ${o.keterangan || ''} ${o.condition || ''}`.toLowerCase();
+    return r.includes('waiting po') || (r.includes('po') && !r.includes('pr') && r.includes('waiting'));
+  }).length;
+  const osrWaitingPr = osr.filter((o) => {
+    const r = `${o.remarks || ''} ${o.keterangan || ''} ${o.condition || ''}`.toLowerCase();
+    return r.includes('waiting pr') || (r.includes('pr') && r.includes('waiting'));
+  }).length;
+  const osrWaitingQuotation = osr.filter((o) => {
+    const r = `${o.remarks || ''} ${o.keterangan || ''} ${o.condition || ''}`.toLowerCase();
+    return r.includes('quotation') || r.includes('penawaran') || r.includes('quote');
+  }).length;
+  const osrCancelRepair = osr.filter((o) => {
+    const r = `${o.remarks || ''} ${o.keterangan || ''} ${o.condition || ''}`.toLowerCase();
+    return r.includes('cancel') || r.includes('batal');
+  }).length;
+  const osrDoneSupply = osr.filter((o) => {
+    const r = `${o.remarks || ''} ${o.keterangan || ''} ${o.condition || ''} ${o.status || ''}`.toLowerCase();
+    return r.includes('done') || r.includes('supply') || r.includes('selesai');
+  }).length;
+  const activeOsr = osrUnderRepair > 0 ? osrUnderRepair : osr.filter((o) => o.status === 'Sedang Dikerjakan' || o.status === 'Testing').length;
+
+  // ==============================================================
+  // 4. ALAT DIPINJAM (Modul: "Peminjaman Tools")
+  // ==============================================================
+  const totalPeminjaman = peminjaman.length;
+  const pjmDipinjam = peminjaman.filter((p) => p.status === 'Dipinjam').length;
+  const pjmTerlambat = peminjaman.filter((p) => p.status === 'Terlambat').length;
+  const pjmKembali = peminjaman.filter((p) => p.status === 'Kembali').length;
+  const activeLoans = pjmDipinjam + pjmTerlambat;
+
+  // ==============================================================
+  // 5. BA KERUSAKAN ALAT (Modul: "BA Kerusakan Alat")
+  // Action: Out Site Repair, In Site Repair, Pergantian Baru
+  // ==============================================================
+  const totalKerusakan = kerusakan.length;
+  const baOutSiteRepair = kerusakan.filter((k) => {
+    const a = `${k.action || ''} ${k.tindakanKorektif || ''}`.toLowerCase();
+    return a.includes('out') || a.includes('osr');
+  }).length;
+  const baInSiteRepair = kerusakan.filter((k) => {
+    const a = `${k.action || ''} ${k.tindakanKorektif || ''}`.toLowerCase();
+    return a.includes('in site') || (a.includes('in') && !a.includes('out'));
+  }).length;
+  const baPergantianBaru = kerusakan.filter((k) => {
+    const a = `${k.action || ''} ${k.tindakanKorektif || ''}`.toLowerCase();
+    return a.includes('ganti') || a.includes('baru') || a.includes('pergantian');
+  }).length;
   const openKerusakan = kerusakan.filter((k) => k.status === 'Investigasi' || k.status === 'Review HO').length;
+
+  // ==============================================================
+  // 6. PENGADAAN BARANG (Modul: "Pengadaan Barang")
+  // Status: O/S PR, O/S PO, O/S GR, O/S GI
+  // ==============================================================
+  const totalPengadaan = pengadaan.length;
+  const pgdOsPr = pengadaan.filter((p) => {
+    const s = (p.status || '').toUpperCase();
+    return s.includes('PR') || s === 'O/S PR' || s.includes('DIAJUKAN');
+  }).length;
+  const pgdOsPo = pengadaan.filter((p) => {
+    const s = (p.status || '').toUpperCase();
+    return s.includes('PO') || s === 'O/S PO' || s.includes('DISETUJUI');
+  }).length;
+  const pgdOsGr = pengadaan.filter((p) => {
+    const s = (p.status || '').toUpperCase();
+    return s.includes('GR') || s === 'O/S GR' || s.includes('PENGIRIMAN');
+  }).length;
+  const pgdOsGi = pengadaan.filter((p) => {
+    const s = (p.status || '').toUpperCase();
+    return s.includes('GI') || s === 'O/S GI' || s.includes('DITERIMA') || s.includes('SELESAI');
+  }).length;
+  const pendingPengadaan = pgdOsPr + pgdOsPo;
 
   // Category breakdown
   const categoryMap: { [cat: string]: number } = {};
@@ -171,126 +285,533 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* 5 Main KPI Stat Cards (Matching image.png exactly) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Card 1: TOTAL ASSETS */}
+      {/* 6 Main KPI Stat Cards with Actual Module Data & Percentage Breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {/* ============================================================== */}
+        {/* Card 1: TOTAL ASSETS (Populasi Asset)                          */}
+        {/* ============================================================== */}
         <div
           onClick={() => onNavigate('populasi-asset')}
-          className="bg-white border border-slate-200/80 hover:border-emerald-500/50 rounded-2xl p-5 transition-all cursor-pointer shadow-sm hover:shadow-md group"
+          className="bg-white border border-slate-200/90 hover:border-emerald-500/60 rounded-2xl p-5 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md group flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform">
-              <Boxes className="w-5 h-5" />
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/70 flex items-center justify-center text-emerald-700 group-hover:scale-105 transition-transform">
+                  <Boxes className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
+                    TOTAL ASSETS
+                  </span>
+                  <span className="text-[10px] text-emerald-700 font-medium">
+                    Modul Populasi Asset
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover:text-emerald-700 transition-colors">
+                <span>Buka</span>
+                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </div>
             </div>
-            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              {readyPercent}% Siap
-            </span>
-          </div>
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            Total Assets
-          </div>
-          <div className="text-2xl font-black text-slate-900 mt-0.5">
-            {totalAssets.toLocaleString()}
-          </div>
-          <div className="text-[11px] font-medium text-emerald-700 mt-2 flex items-center gap-1">
-            <span>&uarr; 100% data tersinkron</span>
+
+            <div className="flex items-baseline justify-between mt-1 mb-3.5 pb-2.5 border-b border-slate-100">
+              <div>
+                <span className="text-3xl font-black text-slate-900 tracking-tight">
+                  {totalAssets.toLocaleString()}
+                </span>
+                <span className="text-xs font-semibold text-slate-500 ml-1.5">Total Asset</span>
+              </div>
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" />
+                {readyPercent}% Ready
+              </span>
+            </div>
+
+            {/* Status Breakdown with Count & Percentage */}
+            <div className="space-y-1.5">
+              {[
+                {
+                  label: 'Baik (Ready for Operation)',
+                  count: assetBaikCount,
+                  pct: formatPct(assetBaikCount, totalAssets),
+                  dot: 'bg-emerald-500',
+                  badge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                },
+                {
+                  label: 'Rusak Ringan (Minor Defect)',
+                  count: assetRusakRinganCount,
+                  pct: formatPct(assetRusakRinganCount, totalAssets),
+                  dot: 'bg-amber-400',
+                  badge: 'bg-amber-50 text-amber-700 border-amber-200'
+                },
+                {
+                  label: 'Sedang Diperbaiki (Maintenance)',
+                  count: assetMaintenanceCount,
+                  pct: formatPct(assetMaintenanceCount, totalAssets),
+                  dot: 'bg-sky-500',
+                  badge: 'bg-sky-50 text-sky-700 border-sky-200'
+                },
+                {
+                  label: 'Rusak Berat (Non-Operational)',
+                  count: assetRusakBeratCount,
+                  pct: formatPct(assetRusakBeratCount, totalAssets),
+                  dot: 'bg-rose-500',
+                  badge: 'bg-rose-50 text-rose-700 border-rose-200'
+                }
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-slate-50/80 transition-colors">
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
+                    <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                    <span className="font-bold text-slate-800">{item.count}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
+                      {item.pct}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Card 2: ACTIVE ASSETS */}
+        {/* ============================================================== */}
+        {/* Card 2: TOOL BOX (Populasi Toolbox)                            */}
+        {/* ============================================================== */}
         <div
-          onClick={() => onNavigate('populasi-asset')}
-          className="bg-white border border-slate-200/80 hover:border-sky-500/50 rounded-2xl p-5 transition-all cursor-pointer shadow-sm hover:shadow-md group"
+          onClick={() => onNavigate('populasi-toolbox')}
+          className="bg-white border border-slate-200/90 hover:border-amber-500/60 rounded-2xl p-5 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md group flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-200/60 flex items-center justify-center text-sky-600 group-hover:scale-105 transition-transform">
-              <CheckCircle2 className="w-5 h-5" />
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200/70 flex items-center justify-center text-amber-700 group-hover:scale-105 transition-transform">
+                  <Briefcase className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
+                    TOOL BOX
+                  </span>
+                  <span className="text-[10px] text-amber-700 font-medium">
+                    Modul Populasi Toolbox
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover:text-amber-700 transition-colors">
+                <span>Buka</span>
+                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </div>
             </div>
-            <span className="text-[11px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">
-              Kondisi Baik
-            </span>
-          </div>
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            Active Assets
-          </div>
-          <div className="text-2xl font-black text-slate-900 mt-0.5">
-            {baikCount.toLocaleString()}
-          </div>
-          <div className="text-[11px] font-medium text-slate-500 mt-2">
-            <span>{readyPercent}% of total</span>
+
+            <div className="flex items-baseline justify-between mt-1 mb-3.5 pb-2.5 border-b border-slate-100">
+              <div>
+                <span className="text-3xl font-black text-slate-900 tracking-tight">
+                  {totalToolboxes.toLocaleString()}
+                </span>
+                <span className="text-xs font-semibold text-slate-500 ml-1.5">Box Terdaftar</span>
+              </div>
+              <span className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                {formatPct(toolboxLengkapCount, totalToolboxes)} Lengkap
+              </span>
+            </div>
+
+            {/* Status Breakdown with Count & Percentage */}
+            <div className="space-y-1.5">
+              {[
+                {
+                  label: 'Lengkap & Baik',
+                  count: toolboxLengkapCount,
+                  pct: formatPct(toolboxLengkapCount, totalToolboxes),
+                  dot: 'bg-emerald-500',
+                  badge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                },
+                {
+                  label: 'Tidak Lengkap',
+                  count: toolboxTidakLengkapCount,
+                  pct: formatPct(toolboxTidakLengkapCount, totalToolboxes),
+                  dot: 'bg-rose-500',
+                  badge: 'bg-rose-50 text-rose-700 border-rose-200'
+                }
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-slate-50/80 transition-colors">
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
+                    <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                    <span className="font-bold text-slate-800">{item.count}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
+                      {item.pct}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Card 3: UNDER MAINTENANCE */}
-        <div
-          onClick={() => onNavigate('ba-kerusakan')}
-          className="bg-white border border-slate-200/80 hover:border-amber-500/50 rounded-2xl p-5 transition-all cursor-pointer shadow-sm hover:shadow-md group"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-600 group-hover:scale-105 transition-transform">
-              <Wrench className="w-5 h-5" />
-            </div>
-            <span className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-              {rusakBeratCount} Rusak
-            </span>
-          </div>
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            Under Maintenance
-          </div>
-          <div className="text-2xl font-black text-slate-900 mt-0.5">
-            {(maintenanceCount + rusakRinganCount + rusakBeratCount).toLocaleString()}
-          </div>
-          <div className="text-[11px] font-medium text-slate-500 mt-2">
-            <span>{totalAssets > 0 ? Math.round(((maintenanceCount + rusakRinganCount + rusakBeratCount) / totalAssets) * 100) : 0}% of total</span>
-          </div>
-        </div>
-
-        {/* Card 4: PEMINJAMAN TOOLS */}
-        <div
-          onClick={() => onNavigate('peminjaman-tools')}
-          className="bg-white border border-slate-200/80 hover:border-purple-500/50 rounded-2xl p-5 transition-all cursor-pointer shadow-sm hover:shadow-md group"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200/60 flex items-center justify-center text-purple-600 group-hover:scale-105 transition-transform">
-              <ArrowLeftRight className="w-5 h-5" />
-            </div>
-            <span className="text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
-              Sirkulasi
-            </span>
-          </div>
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            Alat Dipinjam
-          </div>
-          <div className="text-2xl font-black text-slate-900 mt-0.5">
-            {activeLoans.toLocaleString()}
-          </div>
-          <div className="text-[11px] font-medium text-purple-700 mt-2">
-            <span>{peminjaman.length} log transaksi</span>
-          </div>
-        </div>
-
-        {/* Card 5: OSR & KERUSAKAN */}
+        {/* ============================================================== */}
+        {/* Card 3: OSR TOOLS & FACILITY (OSR Tools & Facility)            */}
+        {/* ============================================================== */}
         <div
           onClick={() => onNavigate('osr-tools')}
-          className="bg-white border border-slate-200/80 hover:border-rose-500/50 rounded-2xl p-5 transition-all cursor-pointer shadow-sm hover:shadow-md group"
+          className="bg-white border border-slate-200/90 hover:border-cyan-500/60 rounded-2xl p-5 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md group flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200/60 flex items-center justify-center text-rose-600 group-hover:scale-105 transition-transform">
-              <AlertTriangle className="w-5 h-5" />
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cyan-50 border border-cyan-200/70 flex items-center justify-center text-cyan-700 group-hover:scale-105 transition-transform">
+                  <Wrench className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
+                    OSR TOOLS & FACILITY
+                  </span>
+                  <span className="text-[10px] text-cyan-700 font-medium">
+                    Modul OSR Tools & Facility
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover:text-cyan-700 transition-colors">
+                <span>Buka</span>
+                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </div>
             </div>
-            <span className="text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
-              External
-            </span>
+
+            <div className="flex items-baseline justify-between mt-1 mb-3.5 pb-2.5 border-b border-slate-100">
+              <div>
+                <span className="text-3xl font-black text-slate-900 tracking-tight">
+                  {totalOsr.toLocaleString()}
+                </span>
+                <span className="text-xs font-semibold text-slate-500 ml-1.5">Total OSR</span>
+              </div>
+              <span className="text-[11px] font-bold text-cyan-800 bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded-full">
+                {osrUnderRepair} In Repair
+              </span>
+            </div>
+
+            {/* Remarks Breakdown with Count & Percentage */}
+            <div className="space-y-1">
+              {[
+                {
+                  label: 'Waiting Administrasi',
+                  count: osrWaitingAdmin,
+                  pct: formatPct(osrWaitingAdmin, totalOsr),
+                  dot: 'bg-slate-400',
+                  badge: 'bg-slate-50 text-slate-700 border-slate-200'
+                },
+                {
+                  label: 'Under Repair',
+                  count: osrUnderRepair,
+                  pct: formatPct(osrUnderRepair, totalOsr),
+                  dot: 'bg-amber-500',
+                  badge: 'bg-amber-50 text-amber-700 border-amber-200'
+                },
+                {
+                  label: 'Waiting PO',
+                  count: osrWaitingPo,
+                  pct: formatPct(osrWaitingPo, totalOsr),
+                  dot: 'bg-blue-500',
+                  badge: 'bg-blue-50 text-blue-700 border-blue-200'
+                },
+                {
+                  label: 'Waiting PR',
+                  count: osrWaitingPr,
+                  pct: formatPct(osrWaitingPr, totalOsr),
+                  dot: 'bg-indigo-500',
+                  badge: 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                },
+                {
+                  label: 'Waiting Quotation',
+                  count: osrWaitingQuotation,
+                  pct: formatPct(osrWaitingQuotation, totalOsr),
+                  dot: 'bg-purple-500',
+                  badge: 'bg-purple-50 text-purple-700 border-purple-200'
+                },
+                {
+                  label: 'Cancel Repair',
+                  count: osrCancelRepair,
+                  pct: formatPct(osrCancelRepair, totalOsr),
+                  dot: 'bg-rose-500',
+                  badge: 'bg-rose-50 text-rose-700 border-rose-200'
+                },
+                {
+                  label: 'Done Supply',
+                  count: osrDoneSupply,
+                  pct: formatPct(osrDoneSupply, totalOsr),
+                  dot: 'bg-emerald-500',
+                  badge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                }
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs py-0.5 px-2 rounded-lg hover:bg-slate-50/80 transition-colors">
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
+                    <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                    <span className="font-bold text-slate-800">{item.count}</span>
+                    <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${item.badge}`}>
+                      {item.pct}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            Total OSR & BA
+        </div>
+
+        {/* ============================================================== */}
+        {/* Card 4: ALAT DIPINJAM (Peminjaman Tools)                       */}
+        {/* ============================================================== */}
+        <div
+          onClick={() => onNavigate('peminjaman-tools')}
+          className="bg-white border border-slate-200/90 hover:border-purple-500/60 rounded-2xl p-5 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md group flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200/70 flex items-center justify-center text-purple-700 group-hover:scale-105 transition-transform">
+                  <ArrowLeftRight className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
+                    ALAT DIPINJAM
+                  </span>
+                  <span className="text-[10px] text-purple-700 font-medium">
+                    Modul Peminjaman Tools
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover:text-purple-700 transition-colors">
+                <span>Buka</span>
+                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </div>
+            </div>
+
+            <div className="flex items-baseline justify-between mt-1 mb-3.5 pb-2.5 border-b border-slate-100">
+              <div>
+                <span className="text-3xl font-black text-slate-900 tracking-tight">
+                  {activeLoans.toLocaleString()}
+                </span>
+                <span className="text-xs font-semibold text-slate-500 ml-1.5">Sedang Dipinjam</span>
+              </div>
+              <span className="text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
+                {totalPeminjaman} Transaksi
+              </span>
+            </div>
+
+            {/* Status Breakdown with Count & Percentage */}
+            <div className="space-y-1.5">
+              {[
+                {
+                  label: 'Dipinjam (Active)',
+                  count: pjmDipinjam,
+                  pct: formatPct(pjmDipinjam, totalPeminjaman),
+                  dot: 'bg-purple-500',
+                  badge: 'bg-purple-50 text-purple-700 border-purple-200'
+                },
+                {
+                  label: 'Terlambat (Overdue)',
+                  count: pjmTerlambat,
+                  pct: formatPct(pjmTerlambat, totalPeminjaman),
+                  dot: 'bg-rose-500',
+                  badge: 'bg-rose-50 text-rose-700 border-rose-200'
+                },
+                {
+                  label: 'Kembali (Returned)',
+                  count: pjmKembali,
+                  pct: formatPct(pjmKembali, totalPeminjaman),
+                  dot: 'bg-emerald-500',
+                  badge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                }
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-slate-50/80 transition-colors">
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
+                    <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                    <span className="font-bold text-slate-800">{item.count}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
+                      {item.pct}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 mt-0.5">
-            {(activeOsr + openKerusakan).toLocaleString()}
+        </div>
+
+        {/* ============================================================== */}
+        {/* Card 5: BA KERUSAKAN ALAT (BA Kerusakan Alat)                  */}
+        {/* ============================================================== */}
+        <div
+          onClick={() => onNavigate('ba-kerusakan')}
+          className="bg-white border border-slate-200/90 hover:border-rose-500/60 rounded-2xl p-5 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md group flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200/70 flex items-center justify-center text-rose-700 group-hover:scale-105 transition-transform">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
+                    BA KERUSAKAN ALAT
+                  </span>
+                  <span className="text-[10px] text-rose-700 font-medium">
+                    Modul BA Kerusakan Alat
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover:text-rose-700 transition-colors">
+                <span>Buka</span>
+                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </div>
+            </div>
+
+            <div className="flex items-baseline justify-between mt-1 mb-3.5 pb-2.5 border-b border-slate-100">
+              <div>
+                <span className="text-3xl font-black text-slate-900 tracking-tight">
+                  {totalKerusakan.toLocaleString()}
+                </span>
+                <span className="text-xs font-semibold text-slate-500 ml-1.5">Total BA Kerusakan</span>
+              </div>
+              <span className="text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+                {openKerusakan} Kasus Aktif
+              </span>
+            </div>
+
+            {/* Action Breakdown with Count & Percentage */}
+            <div className="space-y-1.5">
+              {[
+                {
+                  label: 'Out Site Repair',
+                  count: baOutSiteRepair,
+                  pct: formatPct(baOutSiteRepair, totalKerusakan),
+                  dot: 'bg-amber-500',
+                  badge: 'bg-amber-50 text-amber-700 border-amber-200'
+                },
+                {
+                  label: 'In Site Repair',
+                  count: baInSiteRepair,
+                  pct: formatPct(baInSiteRepair, totalKerusakan),
+                  dot: 'bg-sky-500',
+                  badge: 'bg-sky-50 text-sky-700 border-sky-200'
+                },
+                {
+                  label: 'Pergantian Baru',
+                  count: baPergantianBaru,
+                  pct: formatPct(baPergantianBaru, totalKerusakan),
+                  dot: 'bg-rose-500',
+                  badge: 'bg-rose-50 text-rose-700 border-rose-200'
+                }
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-slate-50/80 transition-colors">
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
+                    <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                    <span className="font-bold text-slate-800">{item.count}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
+                      {item.pct}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="text-[11px] font-medium text-rose-600 mt-2">
-            <span>{activeOsr} OSR &bull; {openKerusakan} BA Baru</span>
+        </div>
+
+        {/* ============================================================== */}
+        {/* Card 6: PENGADAAN BARANG (Pengadaan Barang)                    */}
+        {/* ============================================================== */}
+        <div
+          onClick={() => onNavigate('pengadaan-barang')}
+          className="bg-white border border-slate-200/90 hover:border-blue-500/60 rounded-2xl p-5 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md group flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200/70 flex items-center justify-center text-blue-700 group-hover:scale-105 transition-transform">
+                  <ShoppingCart className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
+                    PENGADAAN BARANG
+                  </span>
+                  <span className="text-[10px] text-blue-700 font-medium">
+                    Modul Pengadaan Barang
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover:text-blue-700 transition-colors">
+                <span>Buka</span>
+                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </div>
+            </div>
+
+            <div className="flex items-baseline justify-between mt-1 mb-3.5 pb-2.5 border-b border-slate-100">
+              <div>
+                <span className="text-3xl font-black text-slate-900 tracking-tight">
+                  {totalPengadaan.toLocaleString()}
+                </span>
+                <span className="text-xs font-semibold text-slate-500 ml-1.5">Item Pengadaan</span>
+              </div>
+              <span className="text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                {pendingPengadaan} O/S Pending
+              </span>
+            </div>
+
+            {/* Status Breakdown with Count & Percentage */}
+            <div className="space-y-1.5">
+              {[
+                {
+                  label: 'O/S PR',
+                  count: pgdOsPr,
+                  pct: formatPct(pgdOsPr, totalPengadaan),
+                  dot: 'bg-amber-500',
+                  badge: 'bg-amber-50 text-amber-700 border-amber-200'
+                },
+                {
+                  label: 'O/S PO',
+                  count: pgdOsPo,
+                  pct: formatPct(pgdOsPo, totalPengadaan),
+                  dot: 'bg-blue-500',
+                  badge: 'bg-blue-50 text-blue-700 border-blue-200'
+                },
+                {
+                  label: 'O/S GR',
+                  count: pgdOsGr,
+                  pct: formatPct(pgdOsGr, totalPengadaan),
+                  dot: 'bg-indigo-500',
+                  badge: 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                },
+                {
+                  label: 'O/S GI',
+                  count: pgdOsGi,
+                  pct: formatPct(pgdOsGi, totalPengadaan),
+                  dot: 'bg-emerald-500',
+                  badge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                }
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-slate-50/80 transition-colors">
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
+                    <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                    <span className="font-bold text-slate-800">{item.count}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
+                      {item.pct}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
