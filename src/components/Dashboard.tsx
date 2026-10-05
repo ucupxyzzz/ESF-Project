@@ -29,7 +29,11 @@ import {
   Layers,
   ArrowUpRight,
   Clock,
-  FileText
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  Maximize2,
+  X
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -65,6 +69,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const isHO = currentUser.role === 'ho';
 
+  // State for collapsible status breakdowns and popup detail modal
+  const [expandedCards, setExpandedCards] = React.useState<Record<string, boolean>>({});
+  const [popupCard, setPopupCard] = React.useState<null | {
+    title: string;
+    subtitle: string;
+    total: number;
+    unit: string;
+    items: Array<{ label: string; count: number; pct: string; dot: string; badge: string }>;
+    module: SheetModule;
+  }>(null);
+
+  const toggleCard = (cardId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setExpandedCards((prev) => ({
+      ...prev,
+      [cardId]: !prev[cardId]
+    }));
+  };
+
   // Helper for computing clean percentages (e.g. 25%, 33.3%, 0%)
   const formatPct = (count: number, total: number): string => {
     if (!total || total <= 0) return '0%';
@@ -93,11 +116,41 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return k.includes('perbaiki') || k.includes('maint') || k.includes('sedang');
   }).length;
   const readyPercent = totalAssets > 0 ? Math.round((assetBaikCount / totalAssets) * 100) : 0;
-  // Aliases for compatibility with legacy charts
   const baikCount = assetBaikCount;
   const rusakRinganCount = assetRusakRinganCount;
   const rusakBeratCount = assetRusakBeratCount;
   const maintenanceCount = assetMaintenanceCount;
+
+  const assetStatusItems = [
+    {
+      label: 'Baik (Ready for Operation)',
+      count: assetBaikCount,
+      pct: formatPct(assetBaikCount, totalAssets),
+      dot: 'bg-emerald-500',
+      badge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    },
+    {
+      label: 'Rusak Ringan (Minor Defect)',
+      count: assetRusakRinganCount,
+      pct: formatPct(assetRusakRinganCount, totalAssets),
+      dot: 'bg-amber-400',
+      badge: 'bg-amber-50 text-amber-700 border-amber-200'
+    },
+    {
+      label: 'Sedang Diperbaiki (Maintenance)',
+      count: assetMaintenanceCount,
+      pct: formatPct(assetMaintenanceCount, totalAssets),
+      dot: 'bg-sky-500',
+      badge: 'bg-sky-50 text-sky-700 border-sky-200'
+    },
+    {
+      label: 'Rusak Berat (Non-Operational)',
+      count: assetRusakBeratCount,
+      pct: formatPct(assetRusakBeratCount, totalAssets),
+      dot: 'bg-rose-500',
+      badge: 'bg-rose-50 text-rose-700 border-rose-200'
+    }
+  ];
 
   // ==============================================================
   // 2. TOOL BOX (Modul: "Populasi Toolbox")
@@ -111,6 +164,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const k = (t.kondisi || '').toLowerCase();
     return k.includes('tidak') || k.includes('hilang') || k.includes('kurang') || (!k.includes('lengkap') && !k.includes('baik') && k.length > 0);
   }).length;
+
+  const toolboxStatusItems = [
+    {
+      label: 'Lengkap & Baik',
+      count: toolboxLengkapCount,
+      pct: formatPct(toolboxLengkapCount, totalToolboxes),
+      dot: 'bg-emerald-500',
+      badge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    },
+    {
+      label: 'Tidak Lengkap',
+      count: toolboxTidakLengkapCount,
+      pct: formatPct(toolboxTidakLengkapCount, totalToolboxes),
+      dot: 'bg-rose-500',
+      badge: 'bg-rose-50 text-rose-700 border-rose-200'
+    }
+  ];
 
   // ==============================================================
   // 3. OSR TOOLS & FACILITY (Modul: "OSR Tools & Facility")
@@ -147,6 +217,58 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }).length;
   const activeOsr = osrUnderRepair > 0 ? osrUnderRepair : osr.filter((o) => o.status === 'Sedang Dikerjakan' || o.status === 'Testing').length;
 
+  const osrRemarksItems = [
+    {
+      label: 'Waiting Administrasi',
+      count: osrWaitingAdmin,
+      pct: formatPct(osrWaitingAdmin, totalOsr),
+      dot: 'bg-slate-400',
+      badge: 'bg-slate-50 text-slate-700 border-slate-200'
+    },
+    {
+      label: 'Under Repair',
+      count: osrUnderRepair,
+      pct: formatPct(osrUnderRepair, totalOsr),
+      dot: 'bg-amber-500',
+      badge: 'bg-amber-50 text-amber-700 border-amber-200'
+    },
+    {
+      label: 'Waiting PO',
+      count: osrWaitingPo,
+      pct: formatPct(osrWaitingPo, totalOsr),
+      dot: 'bg-blue-500',
+      badge: 'bg-blue-50 text-blue-700 border-blue-200'
+    },
+    {
+      label: 'Waiting PR',
+      count: osrWaitingPr,
+      pct: formatPct(osrWaitingPr, totalOsr),
+      dot: 'bg-indigo-500',
+      badge: 'bg-indigo-50 text-indigo-700 border-indigo-200'
+    },
+    {
+      label: 'Waiting Quotation',
+      count: osrWaitingQuotation,
+      pct: formatPct(osrWaitingQuotation, totalOsr),
+      dot: 'bg-purple-500',
+      badge: 'bg-purple-50 text-purple-700 border-purple-200'
+    },
+    {
+      label: 'Cancel Repair',
+      count: osrCancelRepair,
+      pct: formatPct(osrCancelRepair, totalOsr),
+      dot: 'bg-rose-500',
+      badge: 'bg-rose-50 text-rose-700 border-rose-200'
+    },
+    {
+      label: 'Done Supply',
+      count: osrDoneSupply,
+      pct: formatPct(osrDoneSupply, totalOsr),
+      dot: 'bg-emerald-500',
+      badge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    }
+  ];
+
   // ==============================================================
   // 4. ALAT DIPINJAM (Modul: "Peminjaman Tools")
   // ==============================================================
@@ -155,6 +277,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const pjmTerlambat = peminjaman.filter((p) => p.status === 'Terlambat').length;
   const pjmKembali = peminjaman.filter((p) => p.status === 'Kembali').length;
   const activeLoans = pjmDipinjam + pjmTerlambat;
+
+  const peminjamanStatusItems = [
+    {
+      label: 'Dipinjam (Active)',
+      count: pjmDipinjam,
+      pct: formatPct(pjmDipinjam, totalPeminjaman),
+      dot: 'bg-purple-500',
+      badge: 'bg-purple-50 text-purple-700 border-purple-200'
+    },
+    {
+      label: 'Terlambat (Overdue)',
+      count: pjmTerlambat,
+      pct: formatPct(pjmTerlambat, totalPeminjaman),
+      dot: 'bg-rose-500',
+      badge: 'bg-rose-50 text-rose-700 border-rose-200'
+    },
+    {
+      label: 'Kembali (Returned)',
+      count: pjmKembali,
+      pct: formatPct(pjmKembali, totalPeminjaman),
+      dot: 'bg-emerald-500',
+      badge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    }
+  ];
 
   // ==============================================================
   // 5. BA KERUSAKAN ALAT (Modul: "BA Kerusakan Alat")
@@ -174,6 +320,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return a.includes('ganti') || a.includes('baru') || a.includes('pergantian');
   }).length;
   const openKerusakan = kerusakan.filter((k) => k.status === 'Investigasi' || k.status === 'Review HO').length;
+
+  const kerusakanActionItems = [
+    {
+      label: 'Out Site Repair',
+      count: baOutSiteRepair,
+      pct: formatPct(baOutSiteRepair, totalKerusakan),
+      dot: 'bg-amber-500',
+      badge: 'bg-amber-50 text-amber-700 border-amber-200'
+    },
+    {
+      label: 'In Site Repair',
+      count: baInSiteRepair,
+      pct: formatPct(baInSiteRepair, totalKerusakan),
+      dot: 'bg-sky-500',
+      badge: 'bg-sky-50 text-sky-700 border-sky-200'
+    },
+    {
+      label: 'Pergantian Baru',
+      count: baPergantianBaru,
+      pct: formatPct(baPergantianBaru, totalKerusakan),
+      dot: 'bg-rose-500',
+      badge: 'bg-rose-50 text-rose-700 border-rose-200'
+    }
+  ];
 
   // ==============================================================
   // 6. PENGADAAN BARANG (Modul: "Pengadaan Barang")
@@ -197,6 +367,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return s.includes('GI') || s === 'O/S GI' || s.includes('DITERIMA') || s.includes('SELESAI');
   }).length;
   const pendingPengadaan = pgdOsPr + pgdOsPo;
+
+  const pengadaanStatusItems = [
+    {
+      label: 'O/S PR',
+      count: pgdOsPr,
+      pct: formatPct(pgdOsPr, totalPengadaan),
+      dot: 'bg-amber-500',
+      badge: 'bg-amber-50 text-amber-700 border-amber-200'
+    },
+    {
+      label: 'O/S PO',
+      count: pgdOsPo,
+      pct: formatPct(pgdOsPo, totalPengadaan),
+      dot: 'bg-blue-500',
+      badge: 'bg-blue-50 text-blue-700 border-blue-200'
+    },
+    {
+      label: 'O/S GR',
+      count: pgdOsGr,
+      pct: formatPct(pgdOsGr, totalPengadaan),
+      dot: 'bg-indigo-500',
+      badge: 'bg-indigo-50 text-indigo-700 border-indigo-200'
+    },
+    {
+      label: 'O/S GI',
+      count: pgdOsGi,
+      pct: formatPct(pgdOsGi, totalPengadaan),
+      dot: 'bg-emerald-500',
+      badge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    }
+  ];
 
   // Category breakdown
   const categoryMap: { [cat: string]: number } = {};
@@ -285,541 +486,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* 6 Main KPI Stat Cards with Actual Module Data & Percentage Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {/* ============================================================== */}
-        {/* Card 1: TOTAL ASSETS (Populasi Asset)                          */}
-        {/* ============================================================== */}
-        <div
-          onClick={() => onNavigate('populasi-asset')}
-          className="bg-white border border-slate-200/90 hover:border-emerald-500/60 rounded-2xl p-5 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md group flex flex-col justify-between"
-        >
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/70 flex items-center justify-center text-emerald-700 group-hover:scale-105 transition-transform">
-                  <Boxes className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
-                    TOTAL ASSETS
-                  </span>
-                  <span className="text-[10px] text-emerald-700 font-medium">
-                    Modul Populasi Asset
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover:text-emerald-700 transition-colors">
-                <span>Buka</span>
-                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-            </div>
-
-            <div className="flex items-baseline justify-between mt-1 mb-3.5 pb-2.5 border-b border-slate-100">
-              <div>
-                <span className="text-3xl font-black text-slate-900 tracking-tight">
-                  {totalAssets.toLocaleString()}
-                </span>
-                <span className="text-xs font-semibold text-slate-500 ml-1.5">Total Asset</span>
-              </div>
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" />
-                {readyPercent}% Ready
-              </span>
-            </div>
-
-            {/* Status Breakdown with Count & Percentage */}
-            <div className="space-y-1.5">
-              {[
-                {
-                  label: 'Baik (Ready for Operation)',
-                  count: assetBaikCount,
-                  pct: formatPct(assetBaikCount, totalAssets),
-                  dot: 'bg-emerald-500',
-                  badge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                },
-                {
-                  label: 'Rusak Ringan (Minor Defect)',
-                  count: assetRusakRinganCount,
-                  pct: formatPct(assetRusakRinganCount, totalAssets),
-                  dot: 'bg-amber-400',
-                  badge: 'bg-amber-50 text-amber-700 border-amber-200'
-                },
-                {
-                  label: 'Sedang Diperbaiki (Maintenance)',
-                  count: assetMaintenanceCount,
-                  pct: formatPct(assetMaintenanceCount, totalAssets),
-                  dot: 'bg-sky-500',
-                  badge: 'bg-sky-50 text-sky-700 border-sky-200'
-                },
-                {
-                  label: 'Rusak Berat (Non-Operational)',
-                  count: assetRusakBeratCount,
-                  pct: formatPct(assetRusakBeratCount, totalAssets),
-                  dot: 'bg-rose-500',
-                  badge: 'bg-rose-50 text-rose-700 border-rose-200'
-                }
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-slate-50/80 transition-colors">
-                  <div className="flex items-center gap-2 min-w-0 pr-2">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
-                    <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
-                    <span className="font-bold text-slate-800">{item.count}</span>
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
-                      {item.pct}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ============================================================== */}
-        {/* Card 2: TOOL BOX (Populasi Toolbox)                            */}
-        {/* ============================================================== */}
-        <div
-          onClick={() => onNavigate('populasi-toolbox')}
-          className="bg-white border border-slate-200/90 hover:border-amber-500/60 rounded-2xl p-5 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md group flex flex-col justify-between"
-        >
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200/70 flex items-center justify-center text-amber-700 group-hover:scale-105 transition-transform">
-                  <Briefcase className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
-                    TOOL BOX
-                  </span>
-                  <span className="text-[10px] text-amber-700 font-medium">
-                    Modul Populasi Toolbox
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover:text-amber-700 transition-colors">
-                <span>Buka</span>
-                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-            </div>
-
-            <div className="flex items-baseline justify-between mt-1 mb-3.5 pb-2.5 border-b border-slate-100">
-              <div>
-                <span className="text-3xl font-black text-slate-900 tracking-tight">
-                  {totalToolboxes.toLocaleString()}
-                </span>
-                <span className="text-xs font-semibold text-slate-500 ml-1.5">Box Terdaftar</span>
-              </div>
-              <span className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                {formatPct(toolboxLengkapCount, totalToolboxes)} Lengkap
-              </span>
-            </div>
-
-            {/* Status Breakdown with Count & Percentage */}
-            <div className="space-y-1.5">
-              {[
-                {
-                  label: 'Lengkap & Baik',
-                  count: toolboxLengkapCount,
-                  pct: formatPct(toolboxLengkapCount, totalToolboxes),
-                  dot: 'bg-emerald-500',
-                  badge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                },
-                {
-                  label: 'Tidak Lengkap',
-                  count: toolboxTidakLengkapCount,
-                  pct: formatPct(toolboxTidakLengkapCount, totalToolboxes),
-                  dot: 'bg-rose-500',
-                  badge: 'bg-rose-50 text-rose-700 border-rose-200'
-                }
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-slate-50/80 transition-colors">
-                  <div className="flex items-center gap-2 min-w-0 pr-2">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
-                    <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
-                    <span className="font-bold text-slate-800">{item.count}</span>
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
-                      {item.pct}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ============================================================== */}
-        {/* Card 3: OSR TOOLS & FACILITY (OSR Tools & Facility)            */}
-        {/* ============================================================== */}
-        <div
-          onClick={() => onNavigate('osr-tools')}
-          className="bg-white border border-slate-200/90 hover:border-cyan-500/60 rounded-2xl p-5 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md group flex flex-col justify-between"
-        >
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-cyan-50 border border-cyan-200/70 flex items-center justify-center text-cyan-700 group-hover:scale-105 transition-transform">
-                  <Wrench className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
-                    OSR TOOLS & FACILITY
-                  </span>
-                  <span className="text-[10px] text-cyan-700 font-medium">
-                    Modul OSR Tools & Facility
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover:text-cyan-700 transition-colors">
-                <span>Buka</span>
-                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-            </div>
-
-            <div className="flex items-baseline justify-between mt-1 mb-3.5 pb-2.5 border-b border-slate-100">
-              <div>
-                <span className="text-3xl font-black text-slate-900 tracking-tight">
-                  {totalOsr.toLocaleString()}
-                </span>
-                <span className="text-xs font-semibold text-slate-500 ml-1.5">Total OSR</span>
-              </div>
-              <span className="text-[11px] font-bold text-cyan-800 bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded-full">
-                {osrUnderRepair} In Repair
-              </span>
-            </div>
-
-            {/* Remarks Breakdown with Count & Percentage */}
-            <div className="space-y-1">
-              {[
-                {
-                  label: 'Waiting Administrasi',
-                  count: osrWaitingAdmin,
-                  pct: formatPct(osrWaitingAdmin, totalOsr),
-                  dot: 'bg-slate-400',
-                  badge: 'bg-slate-50 text-slate-700 border-slate-200'
-                },
-                {
-                  label: 'Under Repair',
-                  count: osrUnderRepair,
-                  pct: formatPct(osrUnderRepair, totalOsr),
-                  dot: 'bg-amber-500',
-                  badge: 'bg-amber-50 text-amber-700 border-amber-200'
-                },
-                {
-                  label: 'Waiting PO',
-                  count: osrWaitingPo,
-                  pct: formatPct(osrWaitingPo, totalOsr),
-                  dot: 'bg-blue-500',
-                  badge: 'bg-blue-50 text-blue-700 border-blue-200'
-                },
-                {
-                  label: 'Waiting PR',
-                  count: osrWaitingPr,
-                  pct: formatPct(osrWaitingPr, totalOsr),
-                  dot: 'bg-indigo-500',
-                  badge: 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                },
-                {
-                  label: 'Waiting Quotation',
-                  count: osrWaitingQuotation,
-                  pct: formatPct(osrWaitingQuotation, totalOsr),
-                  dot: 'bg-purple-500',
-                  badge: 'bg-purple-50 text-purple-700 border-purple-200'
-                },
-                {
-                  label: 'Cancel Repair',
-                  count: osrCancelRepair,
-                  pct: formatPct(osrCancelRepair, totalOsr),
-                  dot: 'bg-rose-500',
-                  badge: 'bg-rose-50 text-rose-700 border-rose-200'
-                },
-                {
-                  label: 'Done Supply',
-                  count: osrDoneSupply,
-                  pct: formatPct(osrDoneSupply, totalOsr),
-                  dot: 'bg-emerald-500',
-                  badge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                }
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs py-0.5 px-2 rounded-lg hover:bg-slate-50/80 transition-colors">
-                  <div className="flex items-center gap-2 min-w-0 pr-2">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
-                    <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
-                    <span className="font-bold text-slate-800">{item.count}</span>
-                    <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${item.badge}`}>
-                      {item.pct}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ============================================================== */}
-        {/* Card 4: ALAT DIPINJAM (Peminjaman Tools)                       */}
-        {/* ============================================================== */}
-        <div
-          onClick={() => onNavigate('peminjaman-tools')}
-          className="bg-white border border-slate-200/90 hover:border-purple-500/60 rounded-2xl p-5 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md group flex flex-col justify-between"
-        >
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200/70 flex items-center justify-center text-purple-700 group-hover:scale-105 transition-transform">
-                  <ArrowLeftRight className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
-                    ALAT DIPINJAM
-                  </span>
-                  <span className="text-[10px] text-purple-700 font-medium">
-                    Modul Peminjaman Tools
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover:text-purple-700 transition-colors">
-                <span>Buka</span>
-                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-            </div>
-
-            <div className="flex items-baseline justify-between mt-1 mb-3.5 pb-2.5 border-b border-slate-100">
-              <div>
-                <span className="text-3xl font-black text-slate-900 tracking-tight">
-                  {activeLoans.toLocaleString()}
-                </span>
-                <span className="text-xs font-semibold text-slate-500 ml-1.5">Sedang Dipinjam</span>
-              </div>
-              <span className="text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
-                {totalPeminjaman} Transaksi
-              </span>
-            </div>
-
-            {/* Status Breakdown with Count & Percentage */}
-            <div className="space-y-1.5">
-              {[
-                {
-                  label: 'Dipinjam (Active)',
-                  count: pjmDipinjam,
-                  pct: formatPct(pjmDipinjam, totalPeminjaman),
-                  dot: 'bg-purple-500',
-                  badge: 'bg-purple-50 text-purple-700 border-purple-200'
-                },
-                {
-                  label: 'Terlambat (Overdue)',
-                  count: pjmTerlambat,
-                  pct: formatPct(pjmTerlambat, totalPeminjaman),
-                  dot: 'bg-rose-500',
-                  badge: 'bg-rose-50 text-rose-700 border-rose-200'
-                },
-                {
-                  label: 'Kembali (Returned)',
-                  count: pjmKembali,
-                  pct: formatPct(pjmKembali, totalPeminjaman),
-                  dot: 'bg-emerald-500',
-                  badge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                }
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-slate-50/80 transition-colors">
-                  <div className="flex items-center gap-2 min-w-0 pr-2">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
-                    <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
-                    <span className="font-bold text-slate-800">{item.count}</span>
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
-                      {item.pct}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ============================================================== */}
-        {/* Card 5: BA KERUSAKAN ALAT (BA Kerusakan Alat)                  */}
-        {/* ============================================================== */}
-        <div
-          onClick={() => onNavigate('ba-kerusakan')}
-          className="bg-white border border-slate-200/90 hover:border-rose-500/60 rounded-2xl p-5 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md group flex flex-col justify-between"
-        >
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200/70 flex items-center justify-center text-rose-700 group-hover:scale-105 transition-transform">
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
-                    BA KERUSAKAN ALAT
-                  </span>
-                  <span className="text-[10px] text-rose-700 font-medium">
-                    Modul BA Kerusakan Alat
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover:text-rose-700 transition-colors">
-                <span>Buka</span>
-                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-            </div>
-
-            <div className="flex items-baseline justify-between mt-1 mb-3.5 pb-2.5 border-b border-slate-100">
-              <div>
-                <span className="text-3xl font-black text-slate-900 tracking-tight">
-                  {totalKerusakan.toLocaleString()}
-                </span>
-                <span className="text-xs font-semibold text-slate-500 ml-1.5">Total BA Kerusakan</span>
-              </div>
-              <span className="text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
-                {openKerusakan} Kasus Aktif
-              </span>
-            </div>
-
-            {/* Action Breakdown with Count & Percentage */}
-            <div className="space-y-1.5">
-              {[
-                {
-                  label: 'Out Site Repair',
-                  count: baOutSiteRepair,
-                  pct: formatPct(baOutSiteRepair, totalKerusakan),
-                  dot: 'bg-amber-500',
-                  badge: 'bg-amber-50 text-amber-700 border-amber-200'
-                },
-                {
-                  label: 'In Site Repair',
-                  count: baInSiteRepair,
-                  pct: formatPct(baInSiteRepair, totalKerusakan),
-                  dot: 'bg-sky-500',
-                  badge: 'bg-sky-50 text-sky-700 border-sky-200'
-                },
-                {
-                  label: 'Pergantian Baru',
-                  count: baPergantianBaru,
-                  pct: formatPct(baPergantianBaru, totalKerusakan),
-                  dot: 'bg-rose-500',
-                  badge: 'bg-rose-50 text-rose-700 border-rose-200'
-                }
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-slate-50/80 transition-colors">
-                  <div className="flex items-center gap-2 min-w-0 pr-2">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
-                    <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
-                    <span className="font-bold text-slate-800">{item.count}</span>
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
-                      {item.pct}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ============================================================== */}
-        {/* Card 6: PENGADAAN BARANG (Pengadaan Barang)                    */}
-        {/* ============================================================== */}
-        <div
-          onClick={() => onNavigate('pengadaan-barang')}
-          className="bg-white border border-slate-200/90 hover:border-blue-500/60 rounded-2xl p-5 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md group flex flex-col justify-between"
-        >
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200/70 flex items-center justify-center text-blue-700 group-hover:scale-105 transition-transform">
-                  <ShoppingCart className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
-                    PENGADAAN BARANG
-                  </span>
-                  <span className="text-[10px] text-blue-700 font-medium">
-                    Modul Pengadaan Barang
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover:text-blue-700 transition-colors">
-                <span>Buka</span>
-                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-            </div>
-
-            <div className="flex items-baseline justify-between mt-1 mb-3.5 pb-2.5 border-b border-slate-100">
-              <div>
-                <span className="text-3xl font-black text-slate-900 tracking-tight">
-                  {totalPengadaan.toLocaleString()}
-                </span>
-                <span className="text-xs font-semibold text-slate-500 ml-1.5">Item Pengadaan</span>
-              </div>
-              <span className="text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                {pendingPengadaan} O/S Pending
-              </span>
-            </div>
-
-            {/* Status Breakdown with Count & Percentage */}
-            <div className="space-y-1.5">
-              {[
-                {
-                  label: 'O/S PR',
-                  count: pgdOsPr,
-                  pct: formatPct(pgdOsPr, totalPengadaan),
-                  dot: 'bg-amber-500',
-                  badge: 'bg-amber-50 text-amber-700 border-amber-200'
-                },
-                {
-                  label: 'O/S PO',
-                  count: pgdOsPo,
-                  pct: formatPct(pgdOsPo, totalPengadaan),
-                  dot: 'bg-blue-500',
-                  badge: 'bg-blue-50 text-blue-700 border-blue-200'
-                },
-                {
-                  label: 'O/S GR',
-                  count: pgdOsGr,
-                  pct: formatPct(pgdOsGr, totalPengadaan),
-                  dot: 'bg-indigo-500',
-                  badge: 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                },
-                {
-                  label: 'O/S GI',
-                  count: pgdOsGi,
-                  pct: formatPct(pgdOsGi, totalPengadaan),
-                  dot: 'bg-emerald-500',
-                  badge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                }
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-slate-50/80 transition-colors">
-                  <div className="flex items-center gap-2 min-w-0 pr-2">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
-                    <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
-                    <span className="font-bold text-slate-800">{item.count}</span>
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
-                      {item.pct}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3-Column Mid Section: Asset Overview Donut, Maintenance Overview, Recent/Quick Modules */}
+      {/* ============================================================== */}
+      {/* 1. TOP CHARTS: Asset Overview (Donut/Pie) & Asset Category Dist */}
+      {/* ============================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Column 1: ASSET OVERVIEW (Donut Chart matching image.png) */}
-        <div className="lg:col-span-5 bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
+        {/* Left (6 cols): ASSET OVERVIEW (Donut / Pie Chart) */}
+        <div className="lg:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
@@ -828,12 +500,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <p className="text-xs text-slate-500">Komposisi kategori peralatan operasional</p>
             </div>
             <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-              {totalAssets} Unit
+              {totalAssets} Unit Total
             </span>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 my-2">
-            {/* SVG Donut Chart */}
+            {/* SVG Donut / Pie Chart */}
             <div className="relative w-44 h-44 shrink-0 flex items-center justify-center">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                 <circle
@@ -889,90 +561,646 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Tersinkronisasi otomatis dengan Sheet</span>
+            <span>Tersinkronisasi otomatis dengan Google Sheet</span>
             <button
               onClick={() => onNavigate('populasi-asset')}
-              className="text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1"
+              className="text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 cursor-pointer"
             >
-              Rincian <ArrowRight className="w-3 h-3" />
+              Buka Modul <ArrowRight className="w-3 h-3" />
             </button>
           </div>
         </div>
 
-        {/* Column 2: MAINTENANCE OVERVIEW (Status tiles matching image.png) */}
-        <div className="lg:col-span-3 bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
-          <div className="mb-4">
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-              Maintenance Overview
-            </h3>
-            <p className="text-xs text-slate-500">Status jadwal & pemeliharaan</p>
+        {/* Right (6 cols): ASSET CATEGORY DISTRIBUTION (Bar Chart) */}
+        <div className="lg:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                Asset Category Distribution
+              </h3>
+              <p className="text-xs text-slate-500">Jumlah inventaris berdasarkan klasifikasi</p>
+            </div>
+            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+              Live Chart
+            </span>
           </div>
 
-          <div className="space-y-3">
-            {/* OVERDUE */}
-            <div className="p-3 rounded-xl bg-rose-50/70 border border-rose-200/70 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">
-                  Overdue / Rusak Berat
-                </span>
-                <span className="text-lg font-black text-rose-900">
-                  {rusakBeratCount}
-                </span>
+          {/* Bar Chart Visualization */}
+          <div className="flex items-end justify-around gap-2 h-44 pt-4 pb-2 border-b border-slate-100 px-2">
+            {topCategories.slice(0, 5).map(([catName, count], idx) => {
+              const maxCount = Math.max(...topCategories.map((c) => c[1]), 1);
+              const heightPct = Math.max(Math.round((count / maxCount) * 100), 12);
+              const color = categoryPalette[idx % categoryPalette.length];
+
+              return (
+                <div key={catName} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end max-w-[75px]">
+                  <span className="text-xs font-black text-slate-800 opacity-80 group-hover:opacity-100 group-hover:-translate-y-0.5 transition-all">
+                    {count}
+                  </span>
+                  <div className="w-full bg-slate-100 rounded-t-lg h-full flex items-end overflow-hidden">
+                    <div
+                      style={{ height: `${heightPct}%`, backgroundColor: color }}
+                      className="w-full rounded-t-lg transition-all duration-700 group-hover:brightness-110 shadow-sm"
+                    />
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-semibold truncate w-full text-center mt-1" title={catName}>
+                    {catName.substring(0, 9)}
+                  </span>
+                </div>
+              );
+            })}
+
+            {topCategories.length === 0 && (
+              <div className="flex items-center justify-center w-full h-full text-slate-400 text-xs">
+                Belum ada data kategori untuk ditampilkan.
               </div>
-              <div className="w-8 h-8 rounded-lg bg-rose-100/80 flex items-center justify-center text-rose-600">
-                <Calendar className="w-4 h-4" />
+            )}
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-slate-500 mt-3 pt-2">
+            <span>Total terdaftar: <b>{totalAssets} item</b></span>
+            <span className="text-emerald-700 font-semibold">{ALL_JOBSITES.length} Lokasi Tambang</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================== */}
+      {/* 2. 6 MAIN KPI STAT CARDS (Collapsible with Chevron & Pop up)   */}
+      {/* ============================================================== */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {/* Card 1: TOTAL ASSETS */}
+        <div className="bg-white border border-slate-200/90 hover:border-emerald-500/60 rounded-2xl p-5 transition-all duration-200 shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/70 flex items-center justify-center text-emerald-700 group-hover:scale-105 transition-transform">
+                  <Boxes className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
+                    TOTAL ASSETS
+                  </span>
+                  <span className="text-[10px] text-emerald-700 font-medium">
+                    Modul Populasi Asset
+                  </span>
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => onNavigate('populasi-asset')}
+                className="flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-emerald-700 transition-colors cursor-pointer"
+              >
+                <span>Buka</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
             </div>
 
-            {/* DUE THIS WEEK / OSR */}
-            <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200/70 flex items-center justify-between">
+            <div className="flex items-baseline justify-between mt-1 mb-2 pb-2.5 border-b border-slate-100">
               <div>
-                <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">
-                  OSR / Repair Luar
+                <span className="text-3xl font-black text-slate-900 tracking-tight">
+                  {totalAssets.toLocaleString()}
                 </span>
-                <span className="text-lg font-black text-amber-900">
-                  {activeOsr}
-                </span>
+                <span className="text-xs font-semibold text-slate-500 ml-1.5">Total Asset</span>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-amber-100/80 flex items-center justify-center text-amber-600">
-                <Calendar className="w-4 h-4" />
-              </div>
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" />
+                {readyPercent}% Ready
+              </span>
             </div>
 
-            {/* IN SERVICE */}
-            <div className="p-3 rounded-xl bg-sky-50/70 border border-sky-200/70 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wider block">
-                  Servis On-Site
-                </span>
-                <span className="text-lg font-black text-sky-900">
-                  {maintenanceCount + rusakRinganCount}
-                </span>
-              </div>
-              <div className="w-8 h-8 rounded-lg bg-sky-100/80 flex items-center justify-center text-sky-600">
-                <Calendar className="w-4 h-4" />
-              </div>
+            {/* Toggle Panah Bawah / Pop up Action */}
+            <div className="pt-2 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={(e) => toggleCard('assets', e)}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 hover:text-emerald-700 py-1 px-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-colors cursor-pointer"
+              >
+                <span>{expandedCards['assets'] ? 'Tutup Rincian' : `Rincian (${assetStatusItems.length} Status)`}</span>
+                {expandedCards['assets'] ? (
+                  <ChevronUp className="w-3.5 h-3.5 text-emerald-700" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-700 transition-transform" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPopupCard({
+                  title: 'TOTAL ASSETS',
+                  subtitle: 'Modul Populasi Asset - Rincian Status Kondisi',
+                  total: totalAssets,
+                  unit: 'Unit Asset',
+                  items: assetStatusItems,
+                  module: 'populasi-asset'
+                })}
+                className="py-1 px-2 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-slate-100 transition cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
+                title="Buka rincian dalam jendela Pop up"
+              >
+                <Maximize2 className="w-3 h-3" />
+                <span>Pop up</span>
+              </button>
             </div>
 
-            {/* COMPLETED */}
-            <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/70 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">
-                  Ready & Completed
-                </span>
-                <span className="text-lg font-black text-emerald-900">
-                  {baikCount}
-                </span>
+            {/* Expandable Breakdown */}
+            {expandedCards['assets'] && (
+              <div className="space-y-1.5 pt-3 mt-2 border-t border-dashed border-slate-200 animate-in fade-in duration-200">
+                {assetStatusItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
+                      <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                      <span className="font-bold text-slate-800">{item.count}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
+                        {item.pct}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="w-8 h-8 rounded-lg bg-emerald-100/80 flex items-center justify-center text-emerald-600">
-                <CheckCircle2 className="w-4 h-4" />
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Column 3: OPERATIONAL MODULES / RECENT ASSETS (Matching image.png right side) */}
-        <div className="lg:col-span-4 bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
+        {/* Card 2: TOOL BOX */}
+        <div className="bg-white border border-slate-200/90 hover:border-amber-500/60 rounded-2xl p-5 transition-all duration-200 shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200/70 flex items-center justify-center text-amber-700 group-hover:scale-105 transition-transform">
+                  <Briefcase className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
+                    TOOL BOX
+                  </span>
+                  <span className="text-[10px] text-amber-700 font-medium">
+                    Modul Populasi Toolbox
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigate('populasi-toolbox')}
+                className="flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-amber-700 transition-colors cursor-pointer"
+              >
+                <span>Buka</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="flex items-baseline justify-between mt-1 mb-2 pb-2.5 border-b border-slate-100">
+              <div>
+                <span className="text-3xl font-black text-slate-900 tracking-tight">
+                  {totalToolboxes.toLocaleString()}
+                </span>
+                <span className="text-xs font-semibold text-slate-500 ml-1.5">Box Terdaftar</span>
+              </div>
+              <span className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                {formatPct(toolboxLengkapCount, totalToolboxes)} Lengkap
+              </span>
+            </div>
+
+            {/* Toggle Panah Bawah / Pop up Action */}
+            <div className="pt-2 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={(e) => toggleCard('toolboxes', e)}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 hover:text-amber-700 py-1 px-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-colors cursor-pointer"
+              >
+                <span>{expandedCards['toolboxes'] ? 'Tutup Rincian' : `Rincian (${toolboxStatusItems.length} Kondisi)`}</span>
+                {expandedCards['toolboxes'] ? (
+                  <ChevronUp className="w-3.5 h-3.5 text-amber-700" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-700 transition-transform" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPopupCard({
+                  title: 'TOOL BOX',
+                  subtitle: 'Modul Populasi Toolbox - Kelengkapan Box',
+                  total: totalToolboxes,
+                  unit: 'Box',
+                  items: toolboxStatusItems,
+                  module: 'populasi-toolbox'
+                })}
+                className="py-1 px-2 rounded-lg text-slate-500 hover:text-amber-700 hover:bg-slate-100 transition cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
+                title="Buka rincian dalam jendela Pop up"
+              >
+                <Maximize2 className="w-3 h-3" />
+                <span>Pop up</span>
+              </button>
+            </div>
+
+            {/* Expandable Breakdown */}
+            {expandedCards['toolboxes'] && (
+              <div className="space-y-1.5 pt-3 mt-2 border-t border-dashed border-slate-200 animate-in fade-in duration-200">
+                {toolboxStatusItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
+                      <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                      <span className="font-bold text-slate-800">{item.count}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
+                        {item.pct}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Card 3: OSR TOOLS & FACILITY */}
+        <div className="bg-white border border-slate-200/90 hover:border-cyan-500/60 rounded-2xl p-5 transition-all duration-200 shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cyan-50 border border-cyan-200/70 flex items-center justify-center text-cyan-700 group-hover:scale-105 transition-transform">
+                  <Wrench className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
+                    OSR TOOLS & FACILITY
+                  </span>
+                  <span className="text-[10px] text-cyan-700 font-medium">
+                    Modul OSR Tools & Facility
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigate('osr-tools')}
+                className="flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-cyan-700 transition-colors cursor-pointer"
+              >
+                <span>Buka</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="flex items-baseline justify-between mt-1 mb-2 pb-2.5 border-b border-slate-100">
+              <div>
+                <span className="text-3xl font-black text-slate-900 tracking-tight">
+                  {totalOsr.toLocaleString()}
+                </span>
+                <span className="text-xs font-semibold text-slate-500 ml-1.5">Total OSR</span>
+              </div>
+              <span className="text-[11px] font-bold text-cyan-800 bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded-full">
+                {osrUnderRepair} In Repair
+              </span>
+            </div>
+
+            {/* Toggle Panah Bawah / Pop up Action */}
+            <div className="pt-2 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={(e) => toggleCard('osr', e)}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 hover:text-cyan-700 py-1 px-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-colors cursor-pointer"
+              >
+                <span>{expandedCards['osr'] ? 'Tutup Rincian' : `Rincian (${osrRemarksItems.length} Remarks)`}</span>
+                {expandedCards['osr'] ? (
+                  <ChevronUp className="w-3.5 h-3.5 text-cyan-700" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-700 transition-transform" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPopupCard({
+                  title: 'OSR TOOLS & FACILITY',
+                  subtitle: 'Modul OSR Tools & Facility - Rincian Remarks Pengerjaan',
+                  total: totalOsr,
+                  unit: 'Item OSR',
+                  items: osrRemarksItems,
+                  module: 'osr-tools'
+                })}
+                className="py-1 px-2 rounded-lg text-slate-500 hover:text-cyan-700 hover:bg-slate-100 transition cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
+                title="Buka rincian dalam jendela Pop up"
+              >
+                <Maximize2 className="w-3 h-3" />
+                <span>Pop up</span>
+              </button>
+            </div>
+
+            {/* Expandable Breakdown */}
+            {expandedCards['osr'] && (
+              <div className="space-y-1.5 pt-3 mt-2 border-t border-dashed border-slate-200 animate-in fade-in duration-200">
+                {osrRemarksItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs py-0.5 px-2 rounded-lg hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
+                      <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                      <span className="font-bold text-slate-800">{item.count}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
+                        {item.pct}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Card 4: ALAT DIPINJAM */}
+        <div className="bg-white border border-slate-200/90 hover:border-purple-500/60 rounded-2xl p-5 transition-all duration-200 shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200/70 flex items-center justify-center text-purple-700 group-hover:scale-105 transition-transform">
+                  <ArrowLeftRight className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
+                    ALAT DIPINJAM
+                  </span>
+                  <span className="text-[10px] text-purple-700 font-medium">
+                    Modul Peminjaman Tools
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigate('peminjaman-tools')}
+                className="flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-purple-700 transition-colors cursor-pointer"
+              >
+                <span>Buka</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="flex items-baseline justify-between mt-1 mb-2 pb-2.5 border-b border-slate-100">
+              <div>
+                <span className="text-3xl font-black text-slate-900 tracking-tight">
+                  {activeLoans.toLocaleString()}
+                </span>
+                <span className="text-xs font-semibold text-slate-500 ml-1.5">Sedang Dipinjam</span>
+              </div>
+              <span className="text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
+                {totalPeminjaman} Transaksi
+              </span>
+            </div>
+
+            {/* Toggle Panah Bawah / Pop up Action */}
+            <div className="pt-2 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={(e) => toggleCard('peminjaman', e)}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 hover:text-purple-700 py-1 px-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-colors cursor-pointer"
+              >
+                <span>{expandedCards['peminjaman'] ? 'Tutup Rincian' : `Rincian (${peminjamanStatusItems.length} Status)`}</span>
+                {expandedCards['peminjaman'] ? (
+                  <ChevronUp className="w-3.5 h-3.5 text-purple-700" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 group-hover:text-purple-700 transition-transform" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPopupCard({
+                  title: 'ALAT DIPINJAM',
+                  subtitle: 'Modul Peminjaman Tools - Status Sirkulasi Alat',
+                  total: activeLoans,
+                  unit: 'Alat Aktif Dipinjam',
+                  items: peminjamanStatusItems,
+                  module: 'peminjaman-tools'
+                })}
+                className="py-1 px-2 rounded-lg text-slate-500 hover:text-purple-700 hover:bg-slate-100 transition cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
+                title="Buka rincian dalam jendela Pop up"
+              >
+                <Maximize2 className="w-3 h-3" />
+                <span>Pop up</span>
+              </button>
+            </div>
+
+            {/* Expandable Breakdown */}
+            {expandedCards['peminjaman'] && (
+              <div className="space-y-1.5 pt-3 mt-2 border-t border-dashed border-slate-200 animate-in fade-in duration-200">
+                {peminjamanStatusItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
+                      <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                      <span className="font-bold text-slate-800">{item.count}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
+                        {item.pct}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Card 5: BA KERUSAKAN ALAT */}
+        <div className="bg-white border border-slate-200/90 hover:border-rose-500/60 rounded-2xl p-5 transition-all duration-200 shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200/70 flex items-center justify-center text-rose-700 group-hover:scale-105 transition-transform">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
+                    BA KERUSAKAN ALAT
+                  </span>
+                  <span className="text-[10px] text-rose-700 font-medium">
+                    Modul BA Kerusakan Alat
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigate('ba-kerusakan')}
+                className="flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-rose-700 transition-colors cursor-pointer"
+              >
+                <span>Buka</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="flex items-baseline justify-between mt-1 mb-2 pb-2.5 border-b border-slate-100">
+              <div>
+                <span className="text-3xl font-black text-slate-900 tracking-tight">
+                  {totalKerusakan.toLocaleString()}
+                </span>
+                <span className="text-xs font-semibold text-slate-500 ml-1.5">Total Berkas BA</span>
+              </div>
+              <span className="text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+                {openKerusakan} Kasus Aktif
+              </span>
+            </div>
+
+            {/* Toggle Panah Bawah / Pop up Action */}
+            <div className="pt-2 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={(e) => toggleCard('kerusakan', e)}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 hover:text-rose-700 py-1 px-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-colors cursor-pointer"
+              >
+                <span>{expandedCards['kerusakan'] ? 'Tutup Rincian' : `Rincian (${kerusakanActionItems.length} Action)`}</span>
+                {expandedCards['kerusakan'] ? (
+                  <ChevronUp className="w-3.5 h-3.5 text-rose-700" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 group-hover:text-rose-700 transition-transform" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPopupCard({
+                  title: 'BA KERUSAKAN ALAT',
+                  subtitle: 'Modul BA Kerusakan Alat - Tindakan / Action Terpilih',
+                  total: totalKerusakan,
+                  unit: 'Berkas BA',
+                  items: kerusakanActionItems,
+                  module: 'ba-kerusakan'
+                })}
+                className="py-1 px-2 rounded-lg text-slate-500 hover:text-rose-700 hover:bg-slate-100 transition cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
+                title="Buka rincian dalam jendela Pop up"
+              >
+                <Maximize2 className="w-3 h-3" />
+                <span>Pop up</span>
+              </button>
+            </div>
+
+            {/* Expandable Breakdown */}
+            {expandedCards['kerusakan'] && (
+              <div className="space-y-1.5 pt-3 mt-2 border-t border-dashed border-slate-200 animate-in fade-in duration-200">
+                {kerusakanActionItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
+                      <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                      <span className="font-bold text-slate-800">{item.count}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
+                        {item.pct}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Card 6: PENGADAAN BARANG */}
+        <div className="bg-white border border-slate-200/90 hover:border-blue-500/60 rounded-2xl p-5 transition-all duration-200 shadow-xs hover:shadow-md group flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200/70 flex items-center justify-center text-blue-700 group-hover:scale-105 transition-transform">
+                  <ShoppingCart className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
+                    PENGADAAN BARANG
+                  </span>
+                  <span className="text-[10px] text-blue-700 font-medium">
+                    Modul Pengadaan Barang
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigate('pengadaan-barang')}
+                className="flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-blue-700 transition-colors cursor-pointer"
+              >
+                <span>Buka</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="flex items-baseline justify-between mt-1 mb-2 pb-2.5 border-b border-slate-100">
+              <div>
+                <span className="text-3xl font-black text-slate-900 tracking-tight">
+                  {totalPengadaan.toLocaleString()}
+                </span>
+                <span className="text-xs font-semibold text-slate-500 ml-1.5">Item Pengadaan</span>
+              </div>
+              <span className="text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                {pendingPengadaan} O/S Pending
+              </span>
+            </div>
+
+            {/* Toggle Panah Bawah / Pop up Action */}
+            <div className="pt-2 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={(e) => toggleCard('pengadaan', e)}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 hover:text-blue-700 py-1 px-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-colors cursor-pointer"
+              >
+                <span>{expandedCards['pengadaan'] ? 'Tutup Rincian' : `Rincian (${pengadaanStatusItems.length} Status)`}</span>
+                {expandedCards['pengadaan'] ? (
+                  <ChevronUp className="w-3.5 h-3.5 text-blue-700" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-700 transition-transform" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPopupCard({
+                  title: 'PENGADAAN BARANG',
+                  subtitle: 'Modul Pengadaan Barang - Status Outstanding PR / PO / GR / GI',
+                  total: totalPengadaan,
+                  unit: 'Item',
+                  items: pengadaanStatusItems,
+                  module: 'pengadaan-barang'
+                })}
+                className="py-1 px-2 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-slate-100 transition cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
+                title="Buka rincian dalam jendela Pop up"
+              >
+                <Maximize2 className="w-3 h-3" />
+                <span>Pop up</span>
+              </button>
+            </div>
+
+            {/* Expandable Breakdown */}
+            {expandedCards['pengadaan'] && (
+              <div className="space-y-1.5 pt-3 mt-2 border-t border-dashed border-slate-200 animate-in fade-in duration-200">
+                {pengadaanStatusItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${item.dot}`} />
+                      <span className="text-slate-600 font-medium truncate text-[11px]">{item.label}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                      <span className="font-bold text-slate-800">{item.count}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${item.badge}`}>
+                        {item.pct}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================================== */}
+      {/* 3. BOTTOM SECTION: Modul Operasional & Rekapitulasi Jobsite     */}
+      {/* (Maintenance Overview has been completely removed)             */}
+      {/* ============================================================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left (5 cols): Modul Operasional */}
+        <div className="lg:col-span-5 bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
@@ -982,7 +1210,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
             <button
               onClick={() => onNavigate('populasi-toolbox')}
-              className="text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+              className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 cursor-pointer"
             >
               Lihat Semua
             </button>
@@ -1048,70 +1276,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="mt-3 pt-3 border-t border-slate-100 text-center">
             <button
               onClick={() => onOpenCreateModal('peminjaman-tools')}
-              className="w-full py-2 px-3 rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-xs font-bold text-slate-700 hover:text-emerald-800 transition flex items-center justify-center gap-1.5"
+              className="w-full py-2 px-3 rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-xs font-bold text-slate-700 hover:text-emerald-800 transition flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 text-emerald-700" />
               <span>Input Peminjaman Baru</span>
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Bottom Section: Category Vertical Bar Chart & Jobsite Summary (Matching image.png bottom section) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Right / Left: ASSET CATEGORY Vertical Bar Chart (as shown in image.png bottom-right) */}
-        <div className="lg:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                Asset Category Distribution
-              </h3>
-              <p className="text-xs text-slate-500">Jumlah inventaris berdasarkan klasifikasi</p>
-            </div>
-            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-              Live Chart
-            </span>
-          </div>
-
-          {/* Bar Chart Visualization matching image.png */}
-          <div className="flex items-end justify-around gap-2 h-56 pt-8 pb-4 border-b border-slate-100 px-2">
-            {topCategories.slice(0, 5).map(([catName, count], idx) => {
-              const maxCount = Math.max(...topCategories.map((c) => c[1]), 1);
-              const heightPct = Math.max(Math.round((count / maxCount) * 100), 12);
-              const color = categoryPalette[idx % categoryPalette.length];
-
-              return (
-                <div key={catName} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end max-w-[70px]">
-                  <span className="text-xs font-black text-slate-800 opacity-80 group-hover:opacity-100 group-hover:-translate-y-0.5 transition-all">
-                    {count}
-                  </span>
-                  <div className="w-full bg-slate-100 rounded-t-lg h-full flex items-end overflow-hidden">
-                    <div
-                      style={{ height: `${heightPct}%`, backgroundColor: color }}
-                      className="w-full rounded-t-lg transition-all duration-700 group-hover:brightness-110 shadow-sm"
-                    />
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-semibold truncate w-full text-center mt-1" title={catName}>
-                    {catName.substring(0, 9)}
-                  </span>
-                </div>
-              );
-            })}
-
-            {topCategories.length === 0 && (
-              <div className="flex items-center justify-center w-full h-full text-slate-400 text-xs">
-                Belum ada data kategori untuk ditampilkan.
-              </div>
-            )}
-          </div>
-          <div className="flex items-center justify-between text-xs text-slate-500 mt-3 pt-2">
-            <span>Total terdaftar: <b>{totalAssets} item</b></span>
-            <span className="text-emerald-700 font-semibold">{ALL_JOBSITES.length} Lokasi Tambang</span>
-          </div>
-        </div>
-
-        {/* HO Multi-Jobsite Comparison Table or Site Overview */}
-        <div className="lg:col-span-6 bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
+        {/* Right (7 cols): Rekapitulasi Jobsite */}
+        <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4 text-emerald-700" />
@@ -1169,6 +1343,82 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* ============================================================== */}
+      {/* 4. DETAIL POPUP MODAL (Triggered when user clicks Pop up button)*/}
+      {/* ============================================================== */}
+      {popupCard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            {/* Header */}
+            <div className="px-6 py-4 bg-[#063D2E] text-white flex items-center justify-between shrink-0">
+              <div>
+                <h3 className="text-sm font-bold tracking-tight flex items-center gap-2">
+                  <span>Rincian Aktual:</span>
+                  <span className="text-emerald-300">{popupCard.title}</span>
+                </h3>
+                <p className="text-xs text-emerald-200/80">{popupCard.subtitle}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPopupCard(null)}
+                className="p-1 rounded-lg text-emerald-200 hover:text-white hover:bg-[#0E5642] transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 overflow-y-auto space-y-4">
+              <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <span className="text-xs font-semibold text-slate-600">Total Akumulasi:</span>
+                <span className="text-xl font-black text-slate-900 font-mono">
+                  {popupCard.total.toLocaleString()} <span className="text-xs font-normal text-slate-500">{popupCard.unit}</span>
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {popupCard.items.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200/90 hover:border-emerald-300 transition-colors shadow-2xs"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 pr-3">
+                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${item.dot}`} />
+                      <span className="text-xs font-medium text-slate-700 truncate">{item.label}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 font-mono">
+                      <span className="text-sm font-bold text-slate-900">{item.count}</span>
+                      <span className={`px-2 py-0.5 rounded-md text-xs font-bold border ${item.badge}`}>
+                        {item.pct}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
+              <span className="text-[11px] text-slate-500 font-mono">Data otomatis realtime</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const mod = popupCard.module;
+                    setPopupCard(null);
+                    onNavigate(mod);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>Buka Modul</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
