@@ -205,7 +205,7 @@ export default function App() {
       isFetching = true;
       try {
         const res = await AppsScriptSyncService.pullDataFromSheet(true);
-        if (isMounted && res.success && res.hasChanged) {
+        if (isMounted && res.success) {
           reloadAllData();
         }
       } catch (err) {
@@ -218,12 +218,12 @@ export default function App() {
     // 1. Initial silent sync on mount
     performSilentSync();
 
-    // 2. Continuous lightweight background polling every 3.5 seconds
+    // 2. Continuous lightweight background polling every 5 seconds
     const intervalId = setInterval(() => {
       if (document.visibilityState === 'visible') {
         performSilentSync();
       }
-    }, 3500);
+    }, 5000);
 
     // 3. Trigger immediate sync when user focuses window or returns to tab from Google Sheets
     const handleFocusOrVisible = () => {
@@ -337,7 +337,7 @@ export default function App() {
 
       // 1. Record each item in pending queue and push to Google Spreadsheet
       preparedItems.forEach((p) => {
-        const itemKey = p.idPeminjaman || p.noPeminjaman || p.noPengadaan || p.noBa || p.noBast || p.id;
+        const itemKey = p.idPeminjaman || p.noPeminjaman || p.noPengadaan || p.noBa || p.noBast || p.noOsr || p.id;
         StorageService.recordPendingItem(scriptModule, itemKey, p);
         AppsScriptSyncService.pushItemToSheet(mod, 'insert', p, currentUser);
       });
@@ -385,17 +385,22 @@ export default function App() {
       const itemId = rawItem.id || `item-${Date.now()}-${i}`;
       const payload = { ...rawItem, id: itemId, updatedAt: new Date().toISOString() };
 
-      const itemKey =
-        payload.noRegistrasi ||
-        payload.noToolbox ||
-        payload.idPeminjaman ||
-        payload.noPeminjaman ||
-        payload.noPengadaan ||
-        payload.noPoPr ||
-        payload.noBa ||
-        payload.noOsr ||
-        payload.noBast ||
-        payload.id;
+      let itemKey = payload.id;
+      if (mod === 'osr-tools') {
+        itemKey = payload.noOsr || payload.noRegistrasi || payload.id;
+      } else if (mod === 'populasi-asset') {
+        itemKey = payload.noRegistrasi || payload.id;
+      } else if (mod === 'populasi-toolbox') {
+        itemKey = payload.noToolbox || payload.id;
+      } else if (mod === 'peminjaman-tools') {
+        itemKey = payload.idPeminjaman || payload.noPeminjaman || payload.id;
+      } else if (mod === 'pengadaan-barang') {
+        itemKey = payload.noPengadaan || payload.noPoPr || payload.id;
+      } else if (mod === 'ba-kerusakan') {
+        itemKey = payload.noBa || payload.id;
+      } else if (mod === 'ba-serah-terima') {
+        itemKey = payload.noBast || payload.id;
+      }
 
       // Protect item from being cleared by immediate network latency (max 15 seconds)
       StorageService.recordPendingItem(scriptModule, itemKey, payload);
@@ -405,11 +410,16 @@ export default function App() {
         items: T[],
         getKey: (item: T) => string | undefined
       ): T[] => {
+        if (!isEdit) {
+          // Input data baru: SELALU tambahkan langsung ke daftar (tidak boleh menimpa baris lain)
+          return [payload, ...items];
+        }
+        // Mode edit: cari data yang sesuai berdasarkan id atau primary key
         const targetKey = itemKey ? itemKey.trim().toLowerCase() : '';
         const idx = items.findIndex((it) => {
-          if (it.id && it.id === payload.id) return true;
+          if (it.id && payload.id && it.id === payload.id) return true;
           const k = getKey(it);
-          return Boolean(k && targetKey && k.trim().toLowerCase() === targetKey);
+          return Boolean(k && targetKey && targetKey !== '-' && k.trim().toLowerCase() === targetKey);
         });
         if (idx !== -1) {
           const copy = [...items];
@@ -458,7 +468,7 @@ export default function App() {
         }
         case 'osr-tools': {
           const list = StorageService.getOsr();
-          const updated = upsert(list, (o: OsrItem) => o.noOsr);
+          const updated = upsert(list, (o: OsrItem) => o.noOsr || o.noRegistrasi);
           StorageService.saveOsr(updated);
           setOsr(updated);
           break;

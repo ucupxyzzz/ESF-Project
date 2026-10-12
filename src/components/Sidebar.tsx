@@ -116,12 +116,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Header inside Sidebar */}
         <div className="p-4 border-b border-[#0B4D3B] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-400 to-teal-300 flex items-center justify-center font-black text-[#063D2E] text-sm shadow-md shadow-emerald-950/40">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-400 to-emerald-200 flex items-center justify-center font-bold text-[#063D2E] text-sm shadow">
               ESF
             </div>
             <div>
               <span className="text-xs font-bold text-white block uppercase tracking-wider">
-                Asset Management
+                ESF Monitoring
               </span>
               <span className="text-[10px] text-emerald-200/70">Equipment Support Facility</span>
             </div>

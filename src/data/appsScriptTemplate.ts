@@ -274,13 +274,13 @@ function handleDataOperation(ss, action, module, payload, key, userRole, jobsite
 function removeDuplicateRowsByKey(sheet, primaryKey, keepRowIndex) {
   if (!primaryKey) return;
   const cleanKey = String(primaryKey).trim().toLowerCase();
+  if (!cleanKey || cleanKey === '-' || cleanKey === 'item') return;
   const data = sheet.getDataRange().getValues();
   for (let i = data.length - 1; i >= 1; i--) {
     const rowNum = i + 1;
     if (rowNum === keepRowIndex) continue;
     const colA = String(data[i][0] || "").trim().toLowerCase();
-    const colB = String(data[i][1] || "").trim().toLowerCase();
-    if (colA === cleanKey || (colA === "" && colB === cleanKey)) {
+    if (colA && colA === cleanKey) {
       sheet.deleteRow(rowNum);
     }
   }
@@ -317,6 +317,7 @@ function appendRowCleanly(sheet, rowValues) {
 function findRowIndexByKey(sheet, key) {
   if (!key) return -1;
   const cleanKey = String(key).trim().toLowerCase();
+  if (!cleanKey || cleanKey === '-' || cleanKey === 'item') return -1;
   const data = sheet.getDataRange().getValues();
 
   // Dukungan pencarian kunci gabungan (misal: "ID-PEMINJAMAN_KODE-ALAT")

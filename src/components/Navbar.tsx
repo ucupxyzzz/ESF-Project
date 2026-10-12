@@ -51,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-emerald-400 to-teal-300 flex items-center justify-center font-black text-[#063D2E] text-sm shadow-md shadow-emerald-950/40">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-400 to-emerald-200 flex items-center justify-center font-bold text-[#063D2E] text-sm shadow">
               ESF
             </div>
             <div className="hidden sm:block">
@@ -61,7 +61,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   SYSTEM
                 </span>
               </h1>
-              <p className="text-[10px] text-emerald-200/70 leading-tight">Equipment & Facility Management</p>
+              <p className="text-[10px] text-emerald-200/70 leading-tight">Equipment Support Facility</p>
             </div>
           </div>
         </div>

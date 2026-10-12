@@ -16,7 +16,7 @@ export class AppsScriptSyncService {
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6500);
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
 
     try {
       if (!silent) {
@@ -171,14 +171,19 @@ export class AppsScriptSyncService {
       };
 
       const primaryKey =
-        itemData.noRegistrasi ||
-        itemData.noToolbox ||
-        itemData.noPeminjaman ||
-        itemData.noPoPr ||
-        itemData.noBa ||
-        itemData.noOsr ||
-        itemData.noBast ||
-        itemData.id;
+        scriptModule === 'osr'
+          ? (itemData.noOsr || itemData.noRegistrasi || itemData.id || '')
+          : scriptModule === 'bast'
+          ? (itemData.noBast || itemData.id || '')
+          : scriptModule === 'kerusakan'
+          ? (itemData.noBa || itemData.id || '')
+          : scriptModule === 'pengadaan'
+          ? (itemData.noPengadaan || itemData.noPoPr || itemData.id || '')
+          : scriptModule === 'peminjaman'
+          ? (itemData.idPeminjaman || itemData.noPeminjaman || itemData.id || '')
+          : scriptModule === 'toolboxes'
+          ? (itemData.noToolbox || itemData.id || '')
+          : (itemData.noRegistrasi || itemData.id || '');
 
       // Single Reliable Transmission (POST with fallback only if network throws exception)
       // Never send POST and GET in parallel to prevent duplicate rows

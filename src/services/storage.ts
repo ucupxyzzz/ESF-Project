@@ -132,6 +132,8 @@ export class StorageService {
   // Deleted keys tracker so deleted items do not get resurrected during background fetch
   static recordDeletedKey(module: string, key: string): void {
     if (!key) return;
+    const cleanKey = String(key).trim().toLowerCase();
+    if (!cleanKey || cleanKey === '-' || cleanKey === 'undefined' || cleanKey === 'null') return;
     const raw = localStorage.getItem('esf_deleted_keys_v1');
     let list: { module: string; key: string; time: number }[] = [];
     try {
@@ -139,7 +141,6 @@ export class StorageService {
     } catch {
       list = [];
     }
-    const cleanKey = String(key).trim().toLowerCase();
     list = list.filter((x) => !(x.module === module && x.key.toLowerCase() === cleanKey) && Date.now() - x.time < 300000);
     list.push({ module, key: cleanKey, time: Date.now() });
     localStorage.setItem('esf_deleted_keys_v1', JSON.stringify(list));
@@ -147,11 +148,12 @@ export class StorageService {
 
   static isDeletedKey(module: string, key: string): boolean {
     if (!key) return false;
+    const cleanKey = String(key).trim().toLowerCase();
+    if (!cleanKey || cleanKey === '-' || cleanKey === 'undefined' || cleanKey === 'null') return false;
     const raw = localStorage.getItem('esf_deleted_keys_v1');
     if (!raw) return false;
     try {
       const list: { module: string; key: string; time: number }[] = JSON.parse(raw);
-      const cleanKey = String(key).trim().toLowerCase();
       return list.some((x) => x.module === module && x.key.toLowerCase() === cleanKey && Date.now() - x.time < 300000);
     } catch {
       return false;
@@ -247,15 +249,18 @@ export class StorageService {
     }
     try {
       const parsed: AssetItem[] = JSON.parse(raw);
-      return deduplicateByKey(parsed, (a) => a.noRegistrasi || a.id);
+      return Array.isArray(parsed) ? parsed : INITIAL_ASSETS;
     } catch {
       return INITIAL_ASSETS;
     }
   }
 
   static saveAssets(items: AssetItem[]): void {
-    const deduped = deduplicateByKey(items, (a) => a.noRegistrasi || a.id);
-    localStorage.setItem(STORAGE_KEYS.ASSETS, JSON.stringify(deduped));
+    try {
+      localStorage.setItem(STORAGE_KEYS.ASSETS, JSON.stringify(items));
+    } catch (e) {
+      console.warn('Storage error saveAssets:', e);
+    }
   }
 
   static getToolboxes(): ToolboxItem[] {
@@ -266,15 +271,18 @@ export class StorageService {
     }
     try {
       const parsed: ToolboxItem[] = JSON.parse(raw);
-      return deduplicateByKey(parsed, (t) => t.noToolbox || t.id);
+      return Array.isArray(parsed) ? parsed : INITIAL_TOOLBOXES;
     } catch {
       return INITIAL_TOOLBOXES;
     }
   }
 
   static saveToolboxes(items: ToolboxItem[]): void {
-    const deduped = deduplicateByKey(items, (t) => t.noToolbox || t.id);
-    localStorage.setItem(STORAGE_KEYS.TOOLBOXES, JSON.stringify(deduped));
+    try {
+      localStorage.setItem(STORAGE_KEYS.TOOLBOXES, JSON.stringify(items));
+    } catch (e) {
+      console.warn('Storage error saveToolboxes:', e);
+    }
   }
 
   static getPeminjaman(): PeminjamanItem[] {
@@ -285,16 +293,15 @@ export class StorageService {
     }
     try {
       const parsed: PeminjamanItem[] = JSON.parse(raw);
-      return deduplicateByKey(parsed, (p) => p.id || `${p.idPeminjaman || p.noPeminjaman || ''}_${p.kodeAlat || ''}`);
+      return Array.isArray(parsed) ? parsed : INITIAL_PEMINJAMAN;
     } catch {
       return INITIAL_PEMINJAMAN;
     }
   }
 
   static savePeminjaman(items: PeminjamanItem[]): void {
-    const deduped = deduplicateByKey(items, (p) => p.id || `${p.idPeminjaman || p.noPeminjaman || ''}_${p.kodeAlat || ''}`);
     try {
-      localStorage.setItem(STORAGE_KEYS.PEMINJAMAN, JSON.stringify(deduped));
+      localStorage.setItem(STORAGE_KEYS.PEMINJAMAN, JSON.stringify(items));
     } catch (e) {
       console.warn('Storage error savePeminjaman:', e);
     }
@@ -308,17 +315,15 @@ export class StorageService {
     }
     try {
       const parsed: PengadaanItem[] = JSON.parse(raw);
-      // Multi-item support: key by individual item id or composite key, never collapse identical noPengadaan
-      return deduplicateByKey(parsed, (p) => p.id || `${p.noPengadaan || p.noPoPr || ''}_${p.partNumber || ''}_${p.namaAlat || ''}`);
+      return Array.isArray(parsed) ? parsed : INITIAL_PENGADAAN;
     } catch {
       return INITIAL_PENGADAAN;
     }
   }
 
   static savePengadaan(items: PengadaanItem[]): void {
-    const deduped = deduplicateByKey(items, (p) => p.id || `${p.noPengadaan || p.noPoPr || ''}_${p.partNumber || ''}_${p.namaAlat || ''}`);
     try {
-      localStorage.setItem(STORAGE_KEYS.PENGADAAN, JSON.stringify(deduped));
+      localStorage.setItem(STORAGE_KEYS.PENGADAAN, JSON.stringify(items));
     } catch (e) {
       console.warn('Storage error savePengadaan:', e);
     }
@@ -332,17 +337,15 @@ export class StorageService {
     }
     try {
       const parsed: BaKerusakanItem[] = JSON.parse(raw);
-      // Multi-item damage support: key by individual item id or composite key
-      return deduplicateByKey(parsed, (k) => k.id || `${k.noBa || ''}_${k.noRegister || ''}_${k.namaAsset || ''}`);
+      return Array.isArray(parsed) ? parsed : INITIAL_BA_KERUSAKAN;
     } catch {
       return INITIAL_BA_KERUSAKAN;
     }
   }
 
   static saveKerusakan(items: BaKerusakanItem[]): void {
-    const deduped = deduplicateByKey(items, (k) => k.id || `${k.noBa || ''}_${k.noRegister || ''}_${k.namaAsset || ''}`);
     try {
-      localStorage.setItem(STORAGE_KEYS.KERUSAKAN, JSON.stringify(deduped));
+      localStorage.setItem(STORAGE_KEYS.KERUSAKAN, JSON.stringify(items));
     } catch (e) {
       console.warn('Storage error saveKerusakan:', e);
     }
@@ -356,16 +359,15 @@ export class StorageService {
     }
     try {
       const parsed: OsrItem[] = JSON.parse(raw);
-      return deduplicateByKey(parsed, (o) => o.id || `${o.noOsr || ''}_${o.noRegistrasi || ''}`);
+      return Array.isArray(parsed) ? parsed : INITIAL_OSR;
     } catch {
       return INITIAL_OSR;
     }
   }
 
   static saveOsr(items: OsrItem[]): void {
-    const deduped = deduplicateByKey(items, (o) => o.id || `${o.noOsr || ''}_${o.noRegistrasi || ''}`);
     try {
-      localStorage.setItem(STORAGE_KEYS.OSR, JSON.stringify(deduped));
+      localStorage.setItem(STORAGE_KEYS.OSR, JSON.stringify(items));
     } catch (e) {
       console.warn('Storage error saveOsr:', e);
     }
@@ -379,17 +381,15 @@ export class StorageService {
     }
     try {
       const parsed: BaSerahTerimaItem[] = JSON.parse(raw);
-      // Multi-item BAST support: key by individual item id or composite key
-      return deduplicateByKey(parsed, (b) => b.id || `${b.noBast || ''}_${b.noRegister || ''}_${b.namaAsset || ''}`);
+      return Array.isArray(parsed) ? parsed : INITIAL_BA_SERAH_TERIMA;
     } catch {
       return INITIAL_BA_SERAH_TERIMA;
     }
   }
 
   static saveBast(items: BaSerahTerimaItem[]): void {
-    const deduped = deduplicateByKey(items, (b) => b.id || `${b.noBast || ''}_${b.noRegister || ''}_${b.namaAsset || ''}`);
     try {
-      localStorage.setItem(STORAGE_KEYS.BAST, JSON.stringify(deduped));
+      localStorage.setItem(STORAGE_KEYS.BAST, JSON.stringify(items));
     } catch (e) {
       console.warn('Storage error saveBast:', e);
     }
@@ -563,8 +563,8 @@ export class StorageService {
         return r;
       }).filter((a: AssetItem) => (a.noRegistrasi || a.namaAsset) && !this.isDeletedKey('assets', a.noRegistrasi));
 
-      // Strictly deduplicate spreadsheet rows by noRegistrasi
-      const uniqueAssets = deduplicateByKey(parsedAssets, (a) => a.noRegistrasi);
+      // Preserve all rows from spreadsheet exactly as in Google Sheets (no deduplication loss)
+      const uniqueAssets = parsedAssets;
 
       // Merge pending local assets not yet reflected in spreadsheet
       const existingKeys = new Set(uniqueAssets.map((a) => a.noRegistrasi.trim().toLowerCase()).filter(Boolean));
@@ -583,6 +583,7 @@ export class StorageService {
       const oldAssets = this.getAssets();
       if (
         oldAssets.length !== finalAssets.length ||
+        oldAssets[0]?.id !== finalAssets[0]?.id ||
         oldAssets[0]?.noRegistrasi !== finalAssets[0]?.noRegistrasi ||
         JSON.stringify(oldAssets) !== JSON.stringify(finalAssets)
       ) {
@@ -614,8 +615,8 @@ export class StorageService {
         return r;
       }).filter((t: ToolboxItem) => (t.noToolbox || t.namaToolbox) && !this.isDeletedKey('toolboxes', t.noToolbox));
 
-      // Strictly deduplicate spreadsheet rows by noToolbox
-      const uniqueToolboxes = deduplicateByKey(parsedToolboxes, (t) => t.noToolbox);
+      // Preserve all rows from spreadsheet
+      const uniqueToolboxes = parsedToolboxes;
 
       // Merge pending local toolboxes
       const existingTbxKeys = new Set(uniqueToolboxes.map((t) => t.noToolbox.trim().toLowerCase()).filter(Boolean));
@@ -634,6 +635,7 @@ export class StorageService {
       const oldToolboxes = this.getToolboxes();
       if (
         oldToolboxes.length !== finalToolboxes.length ||
+        oldToolboxes[0]?.id !== finalToolboxes[0]?.id ||
         oldToolboxes[0]?.noToolbox !== finalToolboxes[0]?.noToolbox ||
         JSON.stringify(oldToolboxes) !== JSON.stringify(finalToolboxes)
       ) {
@@ -933,19 +935,20 @@ export class StorageService {
           };
         }
         return r;
-      }).filter((o: OsrItem) => (o.noOsr || o.namaAsset) && !this.isDeletedKey('osr', o.noOsr));
+      }).filter((o: OsrItem) => (o.noOsr || o.namaAsset || o.jobsite) && !this.isDeletedKey('osr', o.noOsr));
 
-      // Strictly deduplicate spreadsheet rows by noOsr
-      const uniqueOsr = deduplicateByKey(parsedOsr, (o) => o.noOsr);
+      // Preserve all rows from spreadsheet (multi-item / multi-line support)
+      const uniqueOsr = parsedOsr;
 
       // Merge pending local OSR
-      const existingOsrKeys = new Set(uniqueOsr.map((o) => o.noOsr.trim().toLowerCase()).filter(Boolean));
+      const existingOsrKeys = new Set(uniqueOsr.map((o) => `${o.noOsr || ''}_${o.noRegistrasi || ''}_${o.namaAsset || ''}`.trim().toLowerCase()).filter(Boolean));
       const pendingOsr = pending.filter((p) => p.module === 'osr');
       const finalOsr = [...uniqueOsr];
       for (const p of pendingOsr) {
-        const pk = (p.key || '').trim().toLowerCase();
-        if (pk && !existingOsrKeys.has(pk)) {
-          existingOsrKeys.add(pk);
+        const item = p.data;
+        const itemKey = `${item?.noOsr || ''}_${item?.noRegistrasi || ''}_${item?.namaAsset || ''}`.trim().toLowerCase();
+        if (itemKey && !existingOsrKeys.has(itemKey)) {
+          existingOsrKeys.add(itemKey);
           finalOsr.unshift(p.data);
         } else {
           this.removePendingItem('osr', p.key);
@@ -955,6 +958,7 @@ export class StorageService {
       const oldOsr = this.getOsr();
       if (
         oldOsr.length !== finalOsr.length ||
+        oldOsr[0]?.id !== finalOsr[0]?.id ||
         oldOsr[0]?.noOsr !== finalOsr[0]?.noOsr ||
         JSON.stringify(oldOsr) !== JSON.stringify(finalOsr)
       ) {
