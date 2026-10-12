@@ -337,7 +337,19 @@ export default function App() {
 
       // 1. Record each item in pending queue and push to Google Spreadsheet
       preparedItems.forEach((p) => {
-        const itemKey = p.idPeminjaman || p.noPeminjaman || p.noPengadaan || p.noBa || p.noBast || p.noOsr || p.id;
+        let itemKey = p.id;
+        if (mod === 'ba-serah-terima') {
+          itemKey = `${p.noBast || ''}_${p.noRegister || ''}_${p.namaAsset || ''}_${p.id}`;
+        } else if (mod === 'pengadaan-barang') {
+          itemKey = `${p.noPengadaan || p.noPoPr || ''}_${p.partNumber || ''}_${p.namaAlat || ''}_${p.id}`;
+        } else if (mod === 'peminjaman-tools') {
+          itemKey = `${p.idPeminjaman || p.noPeminjaman || ''}_${p.kodeAlat || ''}_${p.id}`;
+        } else if (mod === 'ba-kerusakan') {
+          itemKey = `${p.noBa || ''}_${p.noRegister || ''}_${p.id}`;
+        } else {
+          itemKey = p.idPeminjaman || p.noPeminjaman || p.noPengadaan || p.noBa || p.noBast || p.noOsr || p.id;
+        }
+
         StorageService.recordPendingItem(scriptModule, itemKey, p);
         AppsScriptSyncService.pushItemToSheet(mod, 'insert', p, currentUser);
       });
@@ -399,7 +411,7 @@ export default function App() {
       } else if (mod === 'ba-kerusakan') {
         itemKey = payload.noBa || payload.id;
       } else if (mod === 'ba-serah-terima') {
-        itemKey = payload.noBast || payload.id;
+        itemKey = `${payload.noBast || ''}_${payload.noRegister || ''}_${payload.namaAsset || ''}_${payload.id}`;
       }
 
       // Protect item from being cleared by immediate network latency (max 15 seconds)
@@ -475,7 +487,7 @@ export default function App() {
         }
         case 'ba-serah-terima': {
           const list = StorageService.getBast();
-          const updated = upsert(list, (b: BaSerahTerimaItem) => b.noBast);
+          const updated = upsert(list, (b: BaSerahTerimaItem) => b.id || `${b.noBast}_${b.noRegister || ''}_${b.namaAsset || ''}`);
           StorageService.saveBast(updated);
           setBast(updated);
           break;
@@ -507,6 +519,21 @@ export default function App() {
     signerName: string
   ) => {
     const today = new Date().toISOString().split('T')[0];
+    const currentBast = StorageService.getBast();
+    const updatedList = currentBast.map((b) =>
+      b.id === item.id || (b.noBast && item.noBast && b.noBast.trim().toLowerCase() === item.noBast.trim().toLowerCase())
+        ? {
+            ...b,
+            hoSignature: signatureDataUrl,
+            hoSignDate: today,
+            hoSignedBy: signerName,
+            status: 'Terverifikasi HO'
+          }
+        : b
+    );
+    StorageService.saveBast(updatedList);
+    setBast(updatedList);
+
     const updatedItem: BaSerahTerimaItem = {
       ...item,
       hoSignature: signatureDataUrl,
@@ -514,13 +541,6 @@ export default function App() {
       hoSignedBy: signerName,
       status: 'Terverifikasi HO'
     };
-
-    const currentBast = StorageService.getBast();
-    const updatedList = currentBast.map((b) =>
-      b.id === item.id || b.noBast === item.noBast ? updatedItem : b
-    );
-    StorageService.saveBast(updatedList);
-    setBast(updatedList);
 
     // Push update to Google Spreadsheet
     await AppsScriptSyncService.pushItemToSheet('ba-serah-terima', 'update', updatedItem, currentUser!);
@@ -551,7 +571,15 @@ export default function App() {
 
       const currentBast = StorageService.getBast();
       const updatedList = currentBast.map((b) =>
-        b.id === bastItem.id || b.noBast === bastItem.noBast ? payloadWithFile : b
+        b.id === bastItem.id || (b.noBast && bastItem.noBast && b.noBast.trim().toLowerCase() === bastItem.noBast.trim().toLowerCase())
+          ? {
+              ...b,
+              status: 'Terverifikasi HO',
+              dokumentasi: base64,
+              bastSite: payloadWithFile.bastSite || b.bastSite,
+              bastHo: payloadWithFile.bastHo || b.bastHo
+            }
+          : b
       );
       StorageService.saveBast(updatedList);
       setBast(updatedList);

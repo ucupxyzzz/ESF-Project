@@ -892,10 +892,10 @@ export const DetailViewModal: React.FC<DetailViewModalProps> = ({
                   { icon: <Clock className="w-3.5 h-3.5 text-slate-500" /> }
                 );
               })()}
-              {renderField(
+              {renderAttachment(
                 'BAST HO (Kolom J)',
-                item.bastHo || item.dokumentasi || <span className="text-slate-400 italic">Tidak ada catatan BAST HO</span>,
-                { icon: <FileText className="w-3.5 h-3.5 text-slate-500" /> }
+                item.bastHo || item.dokumentasi,
+                <FileText className="w-3.5 h-3.5 text-emerald-600" />
               )}
               {renderAttachment(
                 'BAST Site (Kolom K)',

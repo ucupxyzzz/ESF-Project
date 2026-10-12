@@ -218,8 +218,13 @@ function handleDataOperation(ss, action, module, payload, key, userRole, jobsite
             driveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
           } catch (e) {}
           if (module === 'bast') {
-            payload.bastSite = driveFile.getUrl();
-            payload.dokumentasiSite = driveFile.getUrl();
+            if (payload.fileData && (payload.fileData.targetField === 'bastHo' || (payload.fileData.fileName && payload.fileData.fileName.indexOf('_HO') !== -1))) {
+              payload.bastHo = driveFile.getUrl();
+              payload.dokumentasi = driveFile.getUrl();
+            } else {
+              payload.bastSite = driveFile.getUrl();
+              payload.dokumentasiSite = driveFile.getUrl();
+            }
           } else {
             payload.dokumentasi = driveFile.getUrl();
           }
@@ -529,7 +534,33 @@ function convertItemToRow(module, item) {
         item.status || 'Sedang Dikerjakan', // N
         item.dokumentasi || item.fotoKerusakan || '' // O (Kolom O)
       ];
-    case 'bast':
+    case 'bast': {
+      let bHo = item.bastHo || item.dokumentasi || '';
+      let bSite = item.bastSite || item.dokumentasiSite || '';
+      if (bHo.indexOf('data:') === 0 && bHo.length > 500) {
+        try {
+          const folder = DriveApp.getFolderById("1NqjCKwHsH1_pVVfxPY95OI6nXcw71wT6");
+          const cleanB64 = bHo.replace(/^data:[^;]+;base64,/, "");
+          const blob = Utilities.newBlob(Utilities.base64Decode(cleanB64), "application/pdf", (item.noBast || "BAST") + "_HO.pdf");
+          const driveFile = folder.createFile(blob);
+          driveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+          bHo = driveFile.getUrl();
+        } catch(e) {
+          bHo = "[Lampiran BAST HO]";
+        }
+      }
+      if (bSite.indexOf('data:') === 0 && bSite.length > 500) {
+        try {
+          const folder = DriveApp.getFolderById("1NqjCKwHsH1_pVVfxPY95OI6nXcw71wT6");
+          const cleanB64 = bSite.replace(/^data:[^;]+;base64,/, "");
+          const blob = Utilities.newBlob(Utilities.base64Decode(cleanB64), "application/pdf", (item.noBast || "BAST") + "_Site.pdf");
+          const driveFile = folder.createFile(blob);
+          driveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+          bSite = driveFile.getUrl();
+        } catch(e) {
+          bSite = "[Lampiran BAST Site]";
+        }
+      }
       return [
         item.noBast || '', // A
         item.jobsite || '', // B (Index 1)
@@ -540,9 +571,10 @@ function convertItemToRow(module, item) {
         item.noRegister || '', // G
         item.penerima || item.pihakKedua || '', // H
         item.status || 'Draft', // I
-        item.bastHo || item.dokumentasi || '', // J: BAST HO
-        item.bastSite || item.dokumentasiSite || '' // K: BAST Site
+        bHo, // J: BAST HO
+        bSite // K: BAST Site
       ];
+    }
     default:
       return [];
   }

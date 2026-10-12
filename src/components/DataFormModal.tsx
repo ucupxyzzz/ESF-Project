@@ -572,39 +572,50 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
     // 4. MULTI-ITEM HANDLING FOR BA SERAH TERIMA (Requirement 4 & 5)
     if (module === 'ba-serah-terima') {
-      const validAssets = bastAssets.filter(ba => ba.noRegister || ba.namaAsset);
+      const validAssets = bastAssets.filter(ba => (ba.namaAsset && ba.namaAsset.trim()) || (ba.noRegister && ba.noRegister.trim()));
       const itemsToMap = validAssets.length > 0 ? validAssets : bastAssets;
 
       const finalBastHo = dokumenBastHo || formData.bastHo || formData.dokumentasi || '';
       const finalBastSite = dokumenBastSite || formData.bastSite || formData.dokumentasiSite || '';
       const isClosed = Boolean(finalBastHo && finalBastSite);
-      const computedStatus = isClosed ? 'CLOSED' : 'Draft';
+      const computedStatus = isClosed ? 'CLOSED' : (formData.status || 'Draft');
+
+      let fileDataPayload: any = undefined;
+      if (dokumenBastHo && dokumenBastHo.startsWith('data:')) {
+        fileDataPayload = {
+          base64: dokumenBastHo,
+          fileName: dokumenBastHoName || `${formData.noBast ? formData.noBast.replace(/[^a-zA-Z0-9_-]/g, '_') : 'BAST'}_HO.pdf`,
+          mimeType: 'application/pdf',
+          targetField: 'bastHo'
+        };
+      } else if (dokumenBastSite && dokumenBastSite.startsWith('data:')) {
+        fileDataPayload = {
+          base64: dokumenBastSite,
+          fileName: dokumenBastSiteName || `${formData.noBast ? formData.noBast.replace(/[^a-zA-Z0-9_-]/g, '_') : 'BAST'}_Site.pdf`,
+          mimeType: 'application/pdf',
+          targetField: 'bastSite'
+        };
+      }
 
       const items = itemsToMap.map((ba, idx) => ({
-        id: isEdit ? (formData.id || `bst-${timestamp}`) : `bst-${timestamp}-${idx}`,
-        noBast: formData.noBast,
+        id: isEdit && idx === 0 ? (formData.id || `bst-${timestamp}-0`) : `bst-${timestamp}-${idx}`,
+        noBast: formData.noBast || '',
         jobsite: finalJobsite,
-        date: formData.date || new Date().toISOString().split('T')[0],
-        tglSerahTerima: formData.date || new Date().toISOString().split('T')[0],
-        namaAsset: ba.namaAsset || formData.namaAsset || '',
-        noRegister: ba.noRegister || formData.noRegister || '',
-        po: ba.po || formData.po || '',
-        remarks: ba.remarks || formData.remarks || '',
-        keterangan: ba.remarks || formData.remarks || '',
-        penerima: formData.penerima || '',
-        pihakKedua: formData.penerima || '',
+        date: formData.date || formData.tglSerahTerima || new Date().toISOString().split('T')[0],
+        tglSerahTerima: formData.date || formData.tglSerahTerima || new Date().toISOString().split('T')[0],
+        namaAsset: (ba.namaAsset || formData.namaAsset || '').trim(),
+        noRegister: (ba.noRegister || formData.noRegister || '').trim(),
+        po: (ba.po || formData.po || '').trim(),
+        remarks: ba.remarks || formData.remarks || formData.keterangan || 'NEW',
+        keterangan: ba.remarks || formData.remarks || formData.keterangan || 'NEW',
+        penerima: formData.penerima || formData.pihakKedua || '',
+        pihakKedua: formData.penerima || formData.pihakKedua || '',
         status: computedStatus,
         bastHo: finalBastHo,
         dokumentasi: finalBastHo,
         bastSite: finalBastSite,
         dokumentasiSite: finalBastSite,
-        fileData: dokumenBastSite
-          ? {
-              base64: dokumenBastSite,
-              fileName: dokumenBastSiteName || `${formData.noBast ? formData.noBast.replace(/[^a-zA-Z0-9_-]/g, '_') : 'BAST'}_Site.pdf`,
-              mimeType: 'application/pdf'
-            }
-          : undefined
+        fileData: fileDataPayload
       }));
 
       onSave(module, items, isEdit);
@@ -1985,16 +1996,14 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                   <span className="text-xs font-bold text-emerald-800">
                     Daftar Asset yang Diserahterimakan ({bastAssets.length} Asset)
                   </span>
-                  {!isEdit && (
-                    <button
-                      type="button"
-                      onClick={() => setBastAssets([...bastAssets, { noRegister: '', namaAsset: '', po: '', remarks: '' }])}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold cursor-pointer border border-emerald-200"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Tambah Asset</span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setBastAssets([...bastAssets, { noRegister: '', namaAsset: '', po: '', remarks: '' }])}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold cursor-pointer border border-emerald-200"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Asset</span>
+                  </button>
                 </div>
 
                 {bastAssets.map((item, idx) => (
@@ -2003,7 +2012,7 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                       <span className="text-[11px] font-bold text-slate-700 font-mono">
                         Asset #{idx + 1}
                       </span>
-                      {bastAssets.length > 1 && !isEdit && (
+                      {bastAssets.length > 1 && (
                         <button
                           type="button"
                           onClick={() => setBastAssets(bastAssets.filter((_, i) => i !== idx))}
@@ -2023,11 +2032,12 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                         onChange={(e) => {
                           const selected = siteAssets.find(a => a.noRegistrasi === e.target.value);
                           if (selected) {
-                            const copy = [...bastAssets];
-                            copy[idx].noRegister = selected.noRegistrasi;
-                            copy[idx].namaAsset = selected.namaAsset;
-                            if (selected.noPo) copy[idx].po = selected.noPo;
-                            setBastAssets(copy);
+                            setBastAssets(prev => prev.map((it, i) => i === idx ? {
+                              ...it,
+                              noRegister: selected.noRegistrasi,
+                              namaAsset: selected.namaAsset,
+                              po: selected.noPo || it.po
+                            } : it));
                           }
                         }}
                         className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -2044,29 +2054,26 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] text-slate-600 mb-1">No Register (Kolom G)</label>
+                        <label className="block text-[11px] text-slate-600 mb-1">No Register (Kolom G) - Opsional</label>
                         <input
                           type="text"
                           value={item.noRegister}
                           onChange={(e) => {
-                            const copy = [...bastAssets];
-                            copy[idx].noRegister = e.target.value;
-                            setBastAssets(copy);
+                            const val = e.target.value;
+                            setBastAssets(prev => prev.map((it, i) => i === idx ? { ...it, noRegister: val } : it));
                           }}
                           className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                          placeholder="No Registrasi Asset"
-                          required
+                          placeholder="No Registrasi (opsional)"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-slate-600 mb-1">Nama Asset (Kolom D)</label>
+                        <label className="block text-[11px] text-slate-600 mb-1">Nama Asset (Kolom D) *</label>
                         <input
                           type="text"
                           value={item.namaAsset}
                           onChange={(e) => {
-                            const copy = [...bastAssets];
-                            copy[idx].namaAsset = e.target.value;
-                            setBastAssets(copy);
+                            const val = e.target.value;
+                            setBastAssets(prev => prev.map((it, i) => i === idx ? { ...it, namaAsset: val } : it));
                           }}
                           className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           placeholder="Nama Asset"
@@ -2075,19 +2082,33 @@ export const DataFormModal: React.FC<DataFormModalProps> = ({
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] text-slate-600 mb-1">PO (Kolom E)</label>
-                      <input
-                        type="text"
-                        value={item.po}
-                        onChange={(e) => {
-                          const copy = [...bastAssets];
-                          copy[idx].po = e.target.value;
-                          setBastAssets(copy);
-                        }}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        placeholder="No PO"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] text-slate-600 mb-1">PO (Kolom E)</label>
+                        <input
+                          type="text"
+                          value={item.po}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setBastAssets(prev => prev.map((it, i) => i === idx ? { ...it, po: val } : it));
+                          }}
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          placeholder="No PO"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-slate-600 mb-1">Keterangan / Remarks Item (Kolom F)</label>
+                        <input
+                          type="text"
+                          value={item.remarks}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setBastAssets(prev => prev.map((it, i) => i === idx ? { ...it, remarks: val } : it));
+                          }}
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          placeholder="Kondisi: NEW / OSR / Baik"
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}

@@ -373,25 +373,65 @@ export class StorageService {
     }
   }
 
+  private static _bastMemoryCache: BaSerahTerimaItem[] | null = null;
+  private static _attachmentCache: Map<string, string> = new Map();
+
+  static setAttachmentCache(key: string, val: string): void {
+    if (!key || !val) return;
+    this._attachmentCache.set(key, val);
+  }
+
+  static getAttachmentCache(key: string): string | undefined {
+    return this._attachmentCache.get(key);
+  }
+
   static getBast(): BaSerahTerimaItem[] {
     const raw = localStorage.getItem(STORAGE_KEYS.BAST);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEYS.BAST, JSON.stringify(INITIAL_BA_SERAH_TERIMA));
+      if (this._bastMemoryCache && this._bastMemoryCache.length > 0) {
+        return this._bastMemoryCache;
+      }
+      this.saveBast(INITIAL_BA_SERAH_TERIMA);
       return INITIAL_BA_SERAH_TERIMA;
     }
     try {
       const parsed: BaSerahTerimaItem[] = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : INITIAL_BA_SERAH_TERIMA;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+      return this._bastMemoryCache || INITIAL_BA_SERAH_TERIMA;
     } catch {
-      return INITIAL_BA_SERAH_TERIMA;
+      return this._bastMemoryCache || INITIAL_BA_SERAH_TERIMA;
     }
   }
 
   static saveBast(items: BaSerahTerimaItem[]): void {
+    this._bastMemoryCache = items;
     try {
       localStorage.setItem(STORAGE_KEYS.BAST, JSON.stringify(items));
     } catch (e) {
-      console.warn('Storage error saveBast:', e);
+      console.warn('Storage error saveBast (quota exceeded), sanitizing attachments:', e);
+      try {
+        const sanitized = items.map((it) => {
+          const copy = { ...it };
+          if (copy.bastHo && copy.bastHo.length > 500 && !copy.bastHo.startsWith('http')) {
+            copy.bastHo = '[Dokumen BAST HO]';
+          }
+          if (copy.bastSite && copy.bastSite.length > 500 && !copy.bastSite.startsWith('http')) {
+            copy.bastSite = '[Dokumen BAST Site]';
+          }
+          if (copy.dokumentasi && copy.dokumentasi.length > 500 && !copy.dokumentasi.startsWith('http')) {
+            copy.dokumentasi = '[Dokumen BAST HO]';
+          }
+          if (copy.dokumentasiSite && copy.dokumentasiSite.length > 500 && !copy.dokumentasiSite.startsWith('http')) {
+            copy.dokumentasiSite = '[Dokumen BAST Site]';
+          }
+          return copy;
+        });
+        localStorage.setItem(STORAGE_KEYS.BAST, JSON.stringify(sanitized));
+      } catch (err2) {
+        console.error('Failed to save BAST even after sanitizing:', err2);
+      }
     }
   }
 
@@ -451,7 +491,9 @@ export class StorageService {
       case 'ba-serah-terima': {
         const list = this.getBast();
         const target = list.find(x => x.id === id);
-        if (target) deletedKey = target.noBast;
+        if (target) {
+          deletedKey = `${target.noBast}_${target.noRegister || ''}_${target.namaAsset || ''}`.trim().toLowerCase();
+        }
         this.saveBast(list.filter(x => x.id !== id));
         break;
       }
@@ -969,7 +1011,7 @@ export class StorageService {
     }
 
     // 7. BA Serah Terima (Kolom B adalah Jobsite: index 1)
-    // No Bast (A) | Jobsite (B) | Date (C) | Nama Asset (D) | PO (E) | Remarks (F) | No Register (G) | Penerima (H) | Status (I) | Dokumentasi (J)
+    // No Bast (A) | Jobsite (B) | Date (C) | Nama Asset (D) | PO (E) | Remarks (F) | No Register (G) | Penerima (H) | Status (I) | Dokumentasi (J) | BAST Site (K)
     if (Array.isArray(sheetData.bast)) {
       const parsedBast: BaSerahTerimaItem[] = sheetData.bast.map((r: any, idx: number) => {
         if (Array.isArray(r)) {
@@ -982,8 +1024,21 @@ export class StorageService {
           const noRegister = String(r[6] || '').trim();
           const penerima = String(r[7] || '').trim();
           const status = String(r[8] || 'Draft').trim();
-          const bastHo = String(r[9] || '').trim(); // Kolom J (index 9)
-          const bastSite = String(r[10] || '').trim(); // Kolom K (index 10)
+          let bastHo = String(r[9] || '').trim(); // Kolom J (index 9)
+          let bastSite = String(r[10] || '').trim(); // Kolom K (index 10)
+
+          // Quota Protection: if bastHo or bastSite contains raw base64 (>500 chars and not http),
+          // cache it in attachmentCache so localStorage quota is protected
+          if (bastHo.length > 500 && !bastHo.startsWith('http')) {
+            const cacheKey = `attachment_bastHo_${noBast}_${noRegister}_${namaAsset}_${idx}`;
+            StorageService.setAttachmentCache(cacheKey, bastHo);
+            bastHo = bastHo.startsWith('data:image') ? '[Gambar BAST HO]' : '[Dokumen BAST HO]';
+          }
+          if (bastSite.length > 500 && !bastSite.startsWith('http')) {
+            const cacheKey = `attachment_bastSite_${noBast}_${noRegister}_${namaAsset}_${idx}`;
+            StorageService.setAttachmentCache(cacheKey, bastSite);
+            bastSite = bastSite.startsWith('data:image') ? '[Gambar BAST Site]' : '[Dokumen BAST Site]';
+          }
 
           return {
             id: `bst-live-${idx}-${noBast.replace(/[^a-zA-Z0-9]/g, '-')}`,
@@ -1006,35 +1061,48 @@ export class StorageService {
           };
         }
         return r;
-      }).filter((b: BaSerahTerimaItem) => (b.noBast || b.namaAsset) && !this.isDeletedKey('bast', b.noBast));
+      }).filter((b: BaSerahTerimaItem) => {
+        const itemKey = `${b.noBast}_${b.noRegister || ''}_${b.namaAsset || ''}`.trim().toLowerCase();
+        return (b.noBast || b.namaAsset) && !this.isDeletedKey('bast', itemKey) && !this.isDeletedKey('ba-serah-terima', itemKey);
+      });
 
       // Multi-item BAST support: preserve all asset items with the same noBast
       const uniqueBast = parsedBast;
 
+      // Unique composite key for each BAST asset: noBast + noRegister + namaAsset
+      const getBastKey = (b: any) =>
+        `${b.noBast || ''}_${b.noRegister || ''}_${b.namaAsset || ''}`.trim().toLowerCase();
+
       // Merge pending local BAST
-      const existingBastKeys = new Set(uniqueBast.map((b) => `${b.noBast}_${b.noRegister || ''}_${b.namaAsset || ''}`.trim().toLowerCase()).filter(Boolean));
+      const existingBastKeys = new Set(uniqueBast.map(getBastKey).filter(Boolean));
       const pendingBast = pending.filter((p) => p.module === 'bast');
       const finalBast = [...uniqueBast];
       for (const p of pendingBast) {
         const item = p.data;
-        const itemKey = `${item?.noBast || ''}_${item?.noRegister || ''}_${item?.namaAsset || ''}`.trim().toLowerCase();
+        if (!item) continue;
+        const itemKey = getBastKey(item);
         if (itemKey && !existingBastKeys.has(itemKey)) {
           existingBastKeys.add(itemKey);
-          finalBast.unshift(p.data);
-        } else {
+          finalBast.unshift(item);
+        } else if (existingBastKeys.has(itemKey)) {
           this.removePendingItem('bast', p.key);
         }
       }
 
+      // Safeguard: Preserve recent local items from oldBast that have not yet arrived from spreadsheet pull
       const oldBast = this.getBast();
-      if (
-        oldBast.length !== finalBast.length ||
-        oldBast[0]?.noBast !== finalBast[0]?.noBast ||
-        JSON.stringify(oldBast) !== JSON.stringify(finalBast)
-      ) {
-        this.saveBast(finalBast);
-        changed = true;
+      const finalKeys = new Set(finalBast.map(getBastKey).filter(Boolean));
+      for (const oldItem of oldBast) {
+        if (!oldItem) continue;
+        const key = getBastKey(oldItem);
+        if (key && !finalKeys.has(key) && !this.isDeletedKey('bast', key) && !this.isDeletedKey('ba-serah-terima', key)) {
+          finalKeys.add(key);
+          finalBast.unshift(oldItem);
+        }
       }
+
+      this.saveBast(finalBast);
+      changed = true;
       counts.bastCount = finalBast.length;
     }
 
