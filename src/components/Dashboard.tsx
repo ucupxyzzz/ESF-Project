@@ -586,26 +586,46 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           {/* Bar Chart Visualization */}
-          <div className="flex items-end justify-around gap-2 h-44 pt-4 pb-2 border-b border-slate-100 px-2">
+          <div className="flex items-end justify-around gap-2 sm:gap-3 h-52 pt-3 pb-2 border-b border-slate-100 px-1 sm:px-2">
             {topCategories.slice(0, 5).map(([catName, count], idx) => {
               const maxCount = Math.max(...topCategories.map((c) => c[1]), 1);
               const heightPct = Math.max(Math.round((count / maxCount) * 100), 12);
+              const pctOfTotal = totalAssets > 0 ? Math.round((count / totalAssets) * 100) : 0;
               const color = categoryPalette[idx % categoryPalette.length];
+              const words = catName.trim().split(/\s+/);
 
               return (
-                <div key={catName} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end max-w-[75px]">
-                  <span className="text-xs font-black text-slate-800 opacity-80 group-hover:opacity-100 group-hover:-translate-y-0.5 transition-all">
-                    {count}
-                  </span>
-                  <div className="w-full bg-slate-100 rounded-t-lg h-full flex items-end overflow-hidden">
+                <div key={catName} className="flex-1 flex flex-col items-center gap-1.5 group h-full justify-end max-w-[85px] sm:max-w-[95px] min-w-0">
+                  {/* Number & Percentage badge */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-emerald-700 group-hover:-translate-y-0.5 transition-all">
+                      {count}
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400 group-hover:text-slate-600 transition-colors font-mono">
+                      {pctOfTotal}%
+                    </span>
+                  </div>
+
+                  {/* Vertical Bar */}
+                  <div className="w-full bg-slate-100/90 hover:bg-slate-200/70 rounded-t-xl h-full flex items-end overflow-hidden p-0.5 border-t border-x border-slate-200/60 transition-colors">
                     <div
                       style={{ height: `${heightPct}%`, backgroundColor: color }}
-                      className="w-full rounded-t-lg transition-all duration-700 group-hover:brightness-110 shadow-sm"
+                      className="w-full rounded-t-lg transition-all duration-700 group-hover:brightness-110 shadow-xs"
                     />
                   </div>
-                  <span className="text-[10px] text-slate-500 font-semibold truncate w-full text-center mt-1" title={catName}>
-                    {catName.substring(0, 9)}
-                  </span>
+
+                  {/* Category Name Label (Fully visible, 2-line wrapped, high contrast) */}
+                  <div
+                    className="w-full min-h-[36px] flex flex-col items-center justify-center text-center mt-1 px-0.5"
+                    title={`${catName}: ${count} item (${pctOfTotal}%)`}
+                  >
+                    <div className="text-[11px] sm:text-xs font-bold text-slate-800 group-hover:text-emerald-800 text-center leading-tight transition-colors">
+                      <span className="block">{words[0]}</span>
+                      {words.length > 1 && (
+                        <span className="block">{words.slice(1).join(' ')}</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
             })}
