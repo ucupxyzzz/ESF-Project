@@ -167,7 +167,22 @@ export class StorageService {
       return INITIAL_USERS;
     }
     try {
-      return JSON.parse(raw);
+      const storedUsers: User[] = JSON.parse(raw);
+      // Ensure all INITIAL_USERS exist in storedUsers (merge newly added default accounts)
+      let isUpdated = false;
+      for (const initU of INITIAL_USERS) {
+        const exists = storedUsers.some(
+          (u) => u.username.trim().toLowerCase() === initU.username.trim().toLowerCase()
+        );
+        if (!exists) {
+          storedUsers.push(initU);
+          isUpdated = true;
+        }
+      }
+      if (isUpdated) {
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(storedUsers));
+      }
+      return storedUsers;
     } catch {
       return INITIAL_USERS;
     }
@@ -177,11 +192,18 @@ export class StorageService {
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
   }
 
-  static authenticate(username: string, password: string):User | null {
+  static authenticate(username: string, password: string): User | null {
     const users = this.getUsers();
-    const user = users.find(
-      u => u.username.trim().toLowerCase() === username.trim().toLowerCase() && u.password === password
-    );
+    const cleanInput = username.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    const user = users.find((u) => {
+      const uName = u.username.trim().toLowerCase();
+      const shortCode = u.jobsite ? u.jobsite.split(' - ')[0].trim().toLowerCase() : '';
+      const isNameMatch = uName === cleanInput || (shortCode && shortCode === cleanInput);
+      return isNameMatch && u.password === cleanPassword;
+    });
+
     if (user) {
       const loggedUser = { ...user, lastLogin: new Date().toISOString() };
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(loggedUser));

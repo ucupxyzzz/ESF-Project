@@ -86,6 +86,20 @@ export const INITIAL_USERS: User[] = [
     name: 'ESF Team IPF - Tabang'
   },
   {
+    username: 'KDC - Batu Kajang',
+    password: '123624',
+    jobsite: 'KDC - Batu Kajang',
+    role: 'user',
+    name: 'ESF Team KDC - Batu Kajang'
+  },
+  {
+    username: 'TMCT - Tana Merah',
+    password: '123638',
+    jobsite: 'TMCT - Tana Merah',
+    role: 'user',
+    name: 'ESF Team TMCT - Tana Merah'
+  },
+  {
     username: 'Developer',
     password: '111111',
     jobsite: 'System Core',
@@ -105,5 +119,7 @@ export const ALL_JOBSITES = [
   'MPH - Muara Pahu',
   'IPH - Tabang',
   'IPS - Senyiur',
-  'IPF - Tabang'
+  'IPF - Tabang',
+  'KDC - Batu Kajang',
+  'TMCT - Tana Merah'
 ];
