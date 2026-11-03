@@ -33,8 +33,10 @@ import {
   ChevronDown,
   ChevronUp,
   Maximize2,
-  X
+  X,
+  CalendarRange
 } from 'lucide-react';
+import { rowMatchesDateRange, getDatePresets } from '../utils/dateFilterHelper';
 
 interface DashboardProps {
   currentUser: User;
@@ -55,19 +57,62 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({
   currentUser,
   activeJobsite,
-  assets,
-  toolboxes,
-  peminjaman,
-  pengadaan,
-  kerusakan,
-  osr,
-  bast,
+  assets: rawAssets,
+  toolboxes: rawToolboxes,
+  peminjaman: rawPeminjaman,
+  pengadaan: rawPengadaan,
+  kerusakan: rawKerusakan,
+  osr: rawOsr,
+  bast: rawBast,
   onNavigate,
   onOpenCreateModal,
   onManualSync,
   isSyncing
 }) => {
   const isHO = currentUser.role === 'ho';
+
+  // Date Filter State on Dashboard
+  const [startDate, setStartDate] = React.useState('');
+  const [endDate, setEndDate] = React.useState('');
+
+  const datePresets = React.useMemo(() => getDatePresets(), []);
+  const isDateFilterActive = Boolean(startDate || endDate);
+
+  // Filter datasets by date range if active
+  const assets = React.useMemo(() => {
+    if (!startDate && !endDate) return rawAssets;
+    return rawAssets.filter((a) => rowMatchesDateRange('populasi-asset', a, startDate, endDate));
+  }, [rawAssets, startDate, endDate]);
+
+  const toolboxes = React.useMemo(() => {
+    if (!startDate && !endDate) return rawToolboxes;
+    return rawToolboxes.filter((t) => rowMatchesDateRange('populasi-toolbox', t, startDate, endDate));
+  }, [rawToolboxes, startDate, endDate]);
+
+  const peminjaman = React.useMemo(() => {
+    if (!startDate && !endDate) return rawPeminjaman;
+    return rawPeminjaman.filter((p) => rowMatchesDateRange('peminjaman-tools', p, startDate, endDate));
+  }, [rawPeminjaman, startDate, endDate]);
+
+  const pengadaan = React.useMemo(() => {
+    if (!startDate && !endDate) return rawPengadaan;
+    return rawPengadaan.filter((p) => rowMatchesDateRange('pengadaan-barang', p, startDate, endDate));
+  }, [rawPengadaan, startDate, endDate]);
+
+  const kerusakan = React.useMemo(() => {
+    if (!startDate && !endDate) return rawKerusakan;
+    return rawKerusakan.filter((k) => rowMatchesDateRange('ba-kerusakan', k, startDate, endDate));
+  }, [rawKerusakan, startDate, endDate]);
+
+  const osr = React.useMemo(() => {
+    if (!startDate && !endDate) return rawOsr;
+    return rawOsr.filter((o) => rowMatchesDateRange('osr-tools', o, startDate, endDate));
+  }, [rawOsr, startDate, endDate]);
+
+  const bast = React.useMemo(() => {
+    if (!startDate && !endDate) return rawBast;
+    return rawBast.filter((b) => rowMatchesDateRange('ba-serah-terima', b, startDate, endDate));
+  }, [rawBast, startDate, endDate]);
 
   // State for collapsible status breakdowns and popup detail modal
   const [expandedCards, setExpandedCards] = React.useState<Record<string, boolean>>({});
@@ -484,6 +529,103 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Date Range Filter Bar for Dashboard (Dari & Sampai) */}
+      <div className="bg-white border border-slate-200/80 p-3 sm:p-4 rounded-2xl shadow-sm space-y-2.5">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 text-xs">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <div className="flex items-center gap-1.5 text-slate-800 font-bold bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs">
+              <CalendarRange className="w-4 h-4 text-emerald-700" />
+              <span>Filter Tanggal:</span>
+            </div>
+
+            {/* Input Dari Tanggal */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500/30">
+              <span className="text-[11px] font-semibold text-slate-500">Dari:</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="bg-transparent text-xs text-slate-800 font-medium focus:outline-none cursor-pointer"
+                title="Pilih tanggal mulai"
+              />
+            </div>
+
+            {/* Input Sampai Tanggal */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500/30">
+              <span className="text-[11px] font-semibold text-slate-500">Sampai:</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="bg-transparent text-xs text-slate-800 font-medium focus:outline-none cursor-pointer"
+                title="Pilih tanggal selesai"
+              />
+            </div>
+
+            {isDateFilterActive && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStartDate('');
+                  setEndDate('');
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                title="Hapus filter tanggal dashboard"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Reset Tanggal</span>
+              </button>
+            )}
+          </div>
+
+          {/* Quick Presets */}
+          <div className="flex items-center gap-1 flex-wrap self-end lg:self-auto">
+            <span className="text-[11px] text-slate-400 mr-1 hidden sm:inline">Periode:</span>
+            {['today', 'last7Days', 'last30Days', 'thisMonth', 'thisYear'].map((key) => {
+              const p = (datePresets as any)[key];
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    setStartDate(p.start);
+                    setEndDate(p.end);
+                  }}
+                  className="px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 text-slate-600 border border-slate-200/80 transition cursor-pointer"
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Active Filter Notification Banner */}
+        {isDateFilterActive && (
+          <div className="p-2.5 rounded-xl bg-emerald-50/90 border border-emerald-200 flex items-center justify-between gap-2 text-xs text-emerald-900 animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>
+                <strong>Filter Periode Dashboard Aktif:</strong>{' '}
+                {startDate ? `Dari ${startDate}` : 'Awal'}{' '}
+                {endDate ? `s/d ${endDate}` : 'Sekarang'}{' '}
+                &bull; Menampilkan statistik & grafik untuk aktivitas dalam rentang tanggal ini.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setStartDate('');
+                setEndDate('');
+              }}
+              className="text-xs text-emerald-700 hover:text-emerald-950 font-bold underline cursor-pointer"
+            >
+              Tampilkan Seluruh Waktu
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ============================================================== */}

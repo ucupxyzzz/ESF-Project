@@ -12,8 +12,16 @@ import {
   ChevronRight,
   Eye,
   RefreshCw,
-  RotateCcw
+  RotateCcw,
+  Calendar,
+  X,
+  CalendarRange
 } from 'lucide-react';
+import {
+  MODULE_DATE_OPTIONS,
+  rowMatchesDateRange,
+  getDatePresets
+} from '../utils/dateFilterHelper';
 
 interface ColumnDef {
   key: string;
@@ -39,6 +47,7 @@ interface DataTableProps {
 }
 
 export const DataTable: React.FC<DataTableProps> = ({
+  module,
   title,
   description,
   data,
@@ -57,6 +66,31 @@ export const DataTable: React.FC<DataTableProps> = ({
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
+
+  // Filter Tanggal: Dari dan Sampai
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedDateField, setSelectedDateField] = useState('ALL_DATES');
+
+  const datePresets = useMemo(() => getDatePresets(), []);
+  const dateOptions = MODULE_DATE_OPTIONS[module] || [];
+  const isDateFilterActive = Boolean(startDate || endDate);
+
+  const handleApplyPreset = (presetKey: string) => {
+    const preset = (datePresets as any)[presetKey];
+    if (preset) {
+      setStartDate(preset.start);
+      setEndDate(preset.end);
+      setCurrentPage(1);
+    }
+  };
+
+  const handleClearDateFilter = () => {
+    setStartDate('');
+    setEndDate('');
+    setSelectedDateField('ALL_DATES');
+    setCurrentPage(1);
+  };
 
   const canDelete = currentUser.role === 'ho' || currentUser.jobsite === 'HO - Balikpapan';
 
@@ -106,9 +140,18 @@ export const DataTable: React.FC<DataTableProps> = ({
           row.kondisi === selectedStatus;
       }
 
-      return matchesSearch && matchesCategory && matchesStatus;
+      // Date range filter (Dari - Sampai)
+      const matchesDate = rowMatchesDateRange(
+        module,
+        row,
+        startDate,
+        endDate,
+        selectedDateField
+      );
+
+      return matchesSearch && matchesCategory && matchesStatus && matchesDate;
     });
-  }, [data, searchTerm, selectedCategory, selectedStatus]);
+  }, [data, searchTerm, selectedCategory, selectedStatus, startDate, endDate, selectedDateField, module]);
 
   // Pagination
   const totalPages = Math.ceil(filteredData.length / pageSize) || 1;
@@ -190,74 +233,213 @@ export const DataTable: React.FC<DataTableProps> = ({
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white border border-slate-200/80 p-3 sm:p-4 rounded-xl flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between shadow-sm">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="Cari no reg, nama alat, brand, serial, PIC..."
-            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-600 transition"
-          />
+      <div className="bg-white border border-slate-200/80 p-3 sm:p-4 rounded-2xl shadow-sm space-y-3">
+        {/* Row 1: Search input + Category & Status dropdowns + Page size */}
+        <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Cari no reg, nama alat, brand, serial, PIC..."
+              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-600 transition"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {categories.length > 0 && (
+              <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
+                <Filter className="w-3 h-3 text-slate-400" />
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => {
+                    setSelectedCategory(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-transparent text-xs text-slate-700 focus:outline-none cursor-pointer"
+                >
+                  <option value="ALL">Semua Kategori</option>
+                  {categories.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {statuses.length > 0 && (
+              <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => {
+                    setSelectedStatus(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-transparent text-xs text-slate-700 focus:outline-none cursor-pointer"
+                >
+                  <option value="ALL">Semua Status/Kondisi</option>
+                  {statuses.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none cursor-pointer"
+            >
+              <option value={10}>10 / hal</option>
+              <option value={15}>15 / hal</option>
+              <option value={25}>25 / hal</option>
+              <option value={50}>50 / hal</option>
+              <option value={100}>100 / hal</option>
+            </select>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {categories.length > 0 && (
-            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
-              <Filter className="w-3 h-3 text-slate-400" />
-              <select
-                value={selectedCategory}
+        {/* Row 2: Dedicated Filter Tanggal (Dari - Sampai) */}
+        <div className="pt-2.5 border-t border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 text-xs">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <div className="flex items-center gap-1.5 text-slate-700 font-bold bg-emerald-50/80 border border-emerald-200/80 px-2.5 py-1.5 rounded-xl text-xs">
+              <CalendarRange className="w-3.5 h-3.5 text-emerald-700" />
+              <span>Filter Tanggal:</span>
+            </div>
+
+            {/* Input Dari Tanggal */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500/30 transition">
+              <span className="text-[11px] font-semibold text-slate-500">Dari:</span>
+              <input
+                type="date"
+                value={startDate}
                 onChange={(e) => {
-                  setSelectedCategory(e.target.value);
+                  setStartDate(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-transparent text-xs text-slate-700 focus:outline-none cursor-pointer"
-              >
-                <option value="ALL">Semua Kategori</option>
-                {categories.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+                className="bg-transparent text-xs text-slate-800 font-medium focus:outline-none cursor-pointer"
+                title="Pilih tanggal mulai"
+              />
             </div>
-          )}
 
-          {statuses.length > 0 && (
-            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
-              <select
-                value={selectedStatus}
+            {/* Input Sampai Tanggal */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500/30 transition">
+              <span className="text-[11px] font-semibold text-slate-500">Sampai:</span>
+              <input
+                type="date"
+                value={endDate}
                 onChange={(e) => {
-                  setSelectedStatus(e.target.value);
+                  setEndDate(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-transparent text-xs text-slate-700 focus:outline-none cursor-pointer"
-              >
-                <option value="ALL">Semua Status/Kondisi</option>
-                {statuses.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
+                className="bg-transparent text-xs text-slate-800 font-medium focus:outline-none cursor-pointer"
+                title="Pilih tanggal selesai"
+              />
             </div>
-          )}
 
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none cursor-pointer"
-          >
-            <option value={10}>10 / hal</option>
-            <option value={15}>15 / hal</option>
-            <option value={25}>25 / hal</option>
-            <option value={50}>50 / hal</option>
-            <option value={100}>100 / hal</option>
-          </select>
+            {/* Dropdown Pilihan Kolom Tanggal (jika modul punya >1 tanggal) */}
+            {dateOptions.length > 1 && (
+              <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
+                <select
+                  value={selectedDateField}
+                  onChange={(e) => {
+                    setSelectedDateField(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-transparent text-[11px] text-slate-700 font-medium focus:outline-none cursor-pointer max-w-[200px]"
+                  title="Pilih kolom tanggal acuan"
+                >
+                  {dateOptions.map((opt) => (
+                    <option key={opt.key} value={opt.key}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Tombol Reset Filter Tanggal */}
+            {isDateFilterActive && (
+              <button
+                type="button"
+                onClick={handleClearDateFilter}
+                className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                title="Hapus filter tanggal"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Reset Tanggal</span>
+              </button>
+            )}
+          </div>
+
+          {/* Quick Presets */}
+          <div className="flex items-center gap-1 flex-wrap self-end lg:self-auto">
+            <span className="text-[11px] text-slate-400 mr-1 hidden sm:inline">Periode:</span>
+            <button
+              type="button"
+              onClick={() => handleApplyPreset('today')}
+              className="px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 text-slate-600 border border-slate-200/80 transition cursor-pointer"
+            >
+              Hari Ini
+            </button>
+            <button
+              type="button"
+              onClick={() => handleApplyPreset('last7Days')}
+              className="px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 text-slate-600 border border-slate-200/80 transition cursor-pointer"
+            >
+              7 Hari
+            </button>
+            <button
+              type="button"
+              onClick={() => handleApplyPreset('last30Days')}
+              className="px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 text-slate-600 border border-slate-200/80 transition cursor-pointer"
+            >
+              30 Hari
+            </button>
+            <button
+              type="button"
+              onClick={() => handleApplyPreset('thisMonth')}
+              className="px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 text-slate-600 border border-slate-200/80 transition cursor-pointer"
+            >
+              Bulan Ini
+            </button>
+            <button
+              type="button"
+              onClick={() => handleApplyPreset('thisYear')}
+              className="px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 text-slate-600 border border-slate-200/80 transition cursor-pointer"
+            >
+              Tahun Ini
+            </button>
+          </div>
         </div>
+
+        {/* Active Date Filter Notification Banner */}
+        {isDateFilterActive && (
+          <div className="p-2.5 rounded-xl bg-emerald-50/90 border border-emerald-200 flex items-center justify-between gap-2 text-xs text-emerald-900 animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>
+                <strong>Filter Tanggal Aktif:</strong>{' '}
+                {startDate ? `Dari ${startDate}` : 'Hingga'}{' '}
+                {endDate ? `s/d ${endDate}` : ''}{' '}
+                &bull; Ditemukan <strong>{filteredData.length}</strong> data sesuai rentang tanggal.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleClearDateFilter}
+              className="text-xs text-emerald-700 hover:text-emerald-950 font-bold underline cursor-pointer"
+            >
+              Tampilkan Semua
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Table */}
