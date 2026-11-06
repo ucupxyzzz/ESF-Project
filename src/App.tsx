@@ -182,16 +182,18 @@ export default function App() {
     addToast('info', 'Berhasil Keluar', 'Anda telah keluar dari sistem.');
   };
 
+  const isHO = currentUser?.role === 'ho' || currentUser?.jobsite === 'HO - Balikpapan';
+
   // Effective Jobsite for filtering
   // Rule: If HO and filter is 'ALL' -> show all. If HO and specific -> filter to that jobsite.
   // If regular user -> ALWAYS filter to their jobsite!
   const effectiveJobsiteFilter = useMemo(() => {
     if (!currentUser) return 'ALL';
-    if (currentUser.role === 'ho') {
+    if (isHO) {
       return selectedJobsiteFilter; // 'ALL' or specific
     }
     return currentUser.jobsite;
-  }, [currentUser, selectedJobsiteFilter]);
+  }, [currentUser, selectedJobsiteFilter, isHO]);
 
   // Realtime Automatic Synchronization (Polling every 5 seconds & on tab focus/visibility)
   useEffect(() => {
@@ -1329,15 +1331,29 @@ export default function App() {
           )}
 
           {currentModule === 'apps-script-sync' && (
-            <div className="max-w-4xl mx-auto">
-              <AppsScriptModal
-                isOpen={true}
-                onClose={() => setCurrentModule('dashboard')}
-                onSyncNow={handleManualSync}
-                isSyncing={isSyncing}
-                onNotify={addToast}
-              />
-            </div>
+            isHO ? (
+              <div className="max-w-4xl mx-auto">
+                <AppsScriptModal
+                  isOpen={true}
+                  onClose={() => setCurrentModule('dashboard')}
+                  onSyncNow={handleManualSync}
+                  isSyncing={isSyncing}
+                  onNotify={addToast}
+                />
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 p-8 max-w-lg mx-auto">
+                <p className="text-sm font-bold text-slate-800">Akses Terbatas</p>
+                <p className="text-xs text-slate-500 mt-1">Halaman konfigurasi sinkronisasi manual hanya dapat diakses oleh akun Head Office (HO).</p>
+                <button
+                  type="button"
+                  onClick={() => setCurrentModule('dashboard')}
+                  className="mt-4 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition"
+                >
+                  Kembali ke Dashboard
+                </button>
+              </div>
+            )
           )}
         </main>
       </div>

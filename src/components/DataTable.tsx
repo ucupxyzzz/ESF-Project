@@ -92,7 +92,8 @@ export const DataTable: React.FC<DataTableProps> = ({
     setCurrentPage(1);
   };
 
-  const canDelete = currentUser.role === 'ho' || currentUser.jobsite === 'HO - Balikpapan';
+  const isHO = currentUser.role === 'ho' || currentUser.jobsite === 'HO - Balikpapan';
+  const canDelete = isHO;
 
   // Filter options from data
   const categories = useMemo(() => {
@@ -198,13 +199,13 @@ export const DataTable: React.FC<DataTableProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          {onManualSync && (
+          {isHO && onManualSync && (
             <button
               type="button"
               onClick={onManualSync}
               disabled={isSyncing}
               className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm disabled:opacity-50"
-              title="Sinkronkan dengan Google Sheets"
+              title="Sinkronkan dengan Google Sheets (Khusus HO)"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-emerald-700 ${isSyncing ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Sync Sheets</span>

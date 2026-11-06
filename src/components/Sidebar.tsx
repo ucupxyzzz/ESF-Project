@@ -40,6 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   counts
 }) => {
   const isDev = currentUser.role === 'developer';
+  const isHO = currentUser.role === 'ho' || currentUser.jobsite === 'HO - Balikpapan';
 
   const navItems = [
     {
@@ -191,25 +192,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
             );
           })}
 
-          <div className="pt-4 px-3 py-1.5 text-[10px] font-bold text-emerald-300/60 uppercase tracking-wider">
-            Integrasi & Sistem
-          </div>
+          {isHO && (
+            <>
+              <div className="pt-4 px-3 py-1.5 text-[10px] font-bold text-emerald-300/60 uppercase tracking-wider">
+                Integrasi & Sistem
+              </div>
 
-          <button
-            type="button"
-            onClick={() => handleNavClick('apps-script-sync')}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-              currentModule === 'apps-script-sync'
-                ? 'bg-[#0E5642] text-white shadow-md border border-emerald-400/30'
-                : 'text-emerald-100/80 hover:text-white hover:bg-[#094736]'
-            }`}
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <Sheet className="w-4 h-4 text-emerald-300" />
-              <span className="truncate">Sinkronisasi Apps Script</span>
-            </div>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          </button>
+              <button
+                type="button"
+                onClick={() => handleNavClick('apps-script-sync')}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  currentModule === 'apps-script-sync'
+                    ? 'bg-[#0E5642] text-white shadow-md border border-emerald-400/30'
+                    : 'text-emerald-100/80 hover:text-white hover:bg-[#094736]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Sheet className="w-4 h-4 text-emerald-300" />
+                  <span className="truncate">Sinkronisasi Apps Script</span>
+                </div>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              </button>
+            </>
+          )}
 
           {isDev && (
             <button

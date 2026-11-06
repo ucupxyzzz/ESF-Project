@@ -33,7 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   isSyncing = false,
   onToggleSidebar
 }) => {
-  const isHO = currentUser.role === 'ho';
+  const isHO = currentUser.role === 'ho' || currentUser.jobsite === 'HO - Balikpapan';
   const isDev = currentUser.role === 'developer';
 
   return (
@@ -118,20 +118,22 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="font-semibold">Auto-Sync Aktif</span>
           </div>
 
-          {/* Sync Apps Script & Drive Button */}
-          <button
-            type="button"
-            onClick={onOpenSyncModal}
-            className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all cursor-pointer ${
-              isSyncing
-                ? 'bg-amber-950/60 border-amber-600 text-amber-300 animate-pulse'
-                : 'bg-[#0E5642] hover:bg-[#126850] border-emerald-400/30 text-white shadow-sm'
-            }`}
-            title="Akses Penuh Google Drive & Sinkronisasi Spreadsheet"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-emerald-300 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>Drive & Sheets</span>
-          </button>
+          {/* Sync Apps Script & Drive Button (Khusus Akun HO) */}
+          {isHO && (
+            <button
+              type="button"
+              onClick={onOpenSyncModal}
+              className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all cursor-pointer ${
+                isSyncing
+                  ? 'bg-amber-950/60 border-amber-600 text-amber-300 animate-pulse'
+                  : 'bg-[#0E5642] hover:bg-[#126850] border-emerald-400/30 text-white shadow-sm'
+              }`}
+              title="Akses Penuh Google Drive & Sinkronisasi Spreadsheet (HO Super Admin)"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-300 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span>Drive & Sheets</span>
+            </button>
+          )}
 
           {/* User Badge & Logout */}
           <div className="flex items-center gap-2 pl-2 border-l border-[#0B4D3B]">

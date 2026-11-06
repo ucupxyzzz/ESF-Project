@@ -69,7 +69,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onManualSync,
   isSyncing
 }) => {
-  const isHO = currentUser.role === 'ho';
+  const isHO = currentUser.role === 'ho' || currentUser.jobsite === 'HO - Balikpapan';
 
   // Date Filter State on Dashboard
   const [startDate, setStartDate] = React.useState('');
@@ -510,15 +510,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0">
-            <button
-              type="button"
-              onClick={onManualSync}
-              disabled={isSyncing}
-              className="px-3.5 py-2 rounded-xl bg-[#0E5642] hover:bg-[#126850] border border-emerald-400/30 text-xs font-semibold text-white flex items-center gap-2 transition-all cursor-pointer shadow-sm disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 text-emerald-300 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>{isSyncing ? 'Menyinkronkan...' : 'Sync Spreadsheet'}</span>
-            </button>
+            {isHO && (
+              <button
+                type="button"
+                onClick={onManualSync}
+                disabled={isSyncing}
+                className="px-3.5 py-2 rounded-xl bg-[#0E5642] hover:bg-[#126850] border border-emerald-400/30 text-xs font-semibold text-white flex items-center gap-2 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-emerald-300 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>{isSyncing ? 'Menyinkronkan...' : 'Sync Spreadsheet'}</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => onOpenCreateModal('populasi-asset')}
